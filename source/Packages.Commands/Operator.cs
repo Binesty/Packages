@@ -1,9 +1,9 @@
 ﻿namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
-    {        
+    {
         private ISettings? _settings;
-        private Broker? _broker;        
+        private Broker? _broker;
         private readonly IList<Type> Commands = new List<Type>();
 
         internal Operator<TContext> Configure(ISettings settings)
@@ -22,6 +22,7 @@
                 return;
 
             var message = args.Message;
+            Console.WriteLine($"Package Received messages: {message.Id}");
         }
 
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>

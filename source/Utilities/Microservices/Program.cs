@@ -1,6 +1,5 @@
 ﻿using Microservices.Commands;
 using Packages.Commands;
-using System.Runtime;
 
 namespace Microservices
 {
@@ -10,11 +9,11 @@ namespace Microservices
 
         private static void Main()
         {
-            Task.Run(() => Simulator.Start(Settings));
-
             Microservice<Sale>.Configure(Settings)
                               .Execute<Sell>()
                               .Start();
+
+            Task.Run(() => Simulator.Start(Settings));
 
             Console.ReadLine();
         }

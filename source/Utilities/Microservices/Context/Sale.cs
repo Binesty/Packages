@@ -14,7 +14,7 @@ namespace Microservices
 
         public DateTime? Date { get; set; } = null!;
 
-        public decimal Price { get; set; }        
+        public decimal Price { get; set; }
     }
 
     public record Car(string Model, string Name, int Year, decimal Price);

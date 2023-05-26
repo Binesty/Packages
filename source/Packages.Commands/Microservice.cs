@@ -1,6 +1,4 @@
-﻿using System.Runtime;
-
-namespace Packages.Commands
+﻿namespace Packages.Commands
 {
     public static class Microservice<TContext> where TContext : Context
     {

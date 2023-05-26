@@ -15,6 +15,7 @@ namespace Packages.Commands
         private EventingBasicConsumer _eventingBasicConsumerEntry = null!;
 
         internal event EventHandler<MessageEventArgs>? MessageReceived;
+
         public virtual void OnMessageReceived(Message message) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message });
 
@@ -37,12 +38,19 @@ namespace Packages.Commands
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                                    .CreateModel();
 
+            string exchange = $"entry-{_settings.Name}";            
+            var headers = new Dictionary<string, string>
+            {
+                { "microservice", _settings.Name }
+            };
+
             _basicPropertiesEntry = _channelEntry.CreateBasicProperties();
             _basicPropertiesEntry.Persistent = true;
 
-            _channelEntry.ExchangeDeclareNoWait(_settings.Name, "topic", true, false);
-            _channelEntry.QueueDeclareNoWait(_settings.Name, true, false, false, null);
-
+            _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: true);
+            _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: null);
+            
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
             {
@@ -55,11 +63,11 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(queue: _settings.Name, autoAck: false, consumer: _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
         }
     }
 
-    public class MessageEventArgs: EventArgs
+    public class MessageEventArgs : EventArgs
     {
         public Message? Message { get; init; }
     }

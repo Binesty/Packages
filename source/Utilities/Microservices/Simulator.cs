@@ -10,22 +10,22 @@ namespace Microservices
     {
         private static IBasicProperties _basicProperties = null!;
         private static IModel _channel = null!;
-        private static ISettings __settings = null!;
+        private static ISettings _settings = null!;
         private static ConnectionFactory _connectionFactory = null!;
 
         public static async Task Start(ISettings settings)
         {
-            __settings = settings;
+            _settings = settings;
 
             _connectionFactory = new()
             {
-                HostName = __settings.Infrastructure.BrokerHost,
-                UserName = __settings.Infrastructure.BrokerUser,
-                Password = __settings.Infrastructure.BrokerPassword,
-                Port = __settings.Infrastructure.BrokerPort
+                HostName = _settings.Infrastructure.BrokerHost,
+                UserName = _settings.Infrastructure.BrokerUser,
+                Password = _settings.Infrastructure.BrokerPassword,
+                Port = _settings.Infrastructure.BrokerPort
             };
 
-            Console.WriteLine($"Simulator to send messages to: {__settings.Name}");
+            Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
 
             var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
 
@@ -49,13 +49,19 @@ namespace Microservices
             {
                 Id = Guid.NewGuid().ToString(),
                 Owner = "simulator",
-                Destination = __settings.Name,
+                Destination = _settings.Name,
                 Operation = nameof(Sell),
                 Date = DateTime.Now,
                 Content = JsonSerializer.Serialize(sale)
             };
 
-            _channel.BasicPublish(string.Empty, __settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            string exchange = $"entry-{_settings.Name}";
+            var headers = new Dictionary<string, string>
+            {
+                { "microservice", _settings.Name }
+            };
+
+            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Message Sale: {message.Id}");
         }
