@@ -1,4 +1,6 @@
-﻿namespace Packages.Commands
+﻿using System.Text.Json;
+
+namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
@@ -16,15 +18,6 @@
             return this;
         }
 
-        private void MessageReceived(object? sender, MessageEventArgs args)
-        {
-            if (args.Message is null)
-                return;
-
-            var message = args.Message;
-            Console.WriteLine($"Package Received messages: {message.Id}");
-        }
-
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
         {
             var command = Commands.FirstOrDefault(find => find.FullName == typeof(TCommand).FullName);
@@ -37,6 +30,37 @@
         public Operator<TContext> Start()
         {
             return this;
+        }
+
+        private void MessageReceived(object? sender, MessageEventArgs argument)
+        {
+            if (argument.Message is null)
+                return;
+
+            _ = argument.Message.Type switch
+            {
+                MessageType.Command => ExecuteCommand(argument.Message),
+                _ => false
+            };
+        }
+
+        private bool ExecuteCommand(Message message)
+        {
+            var context = JsonSerializer.Deserialize<TContext>(message.Content);
+            if (context == null)
+                return false;
+
+            var commandType = Commands.FirstOrDefault(item => item.Name == message.Operation);
+            if (commandType is null)
+                return false;
+
+            var command = Activator.CreateInstance(commandType);
+            if (command is null)
+                return false;
+
+            var change = ((ICommand<TContext>)command).Execute(context);
+
+            return true;
         }
     }
 }

@@ -66,9 +66,4 @@ namespace Packages.Commands
             _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
         }
     }
-
-    public class MessageEventArgs : EventArgs
-    {
-        public Message? Message { get; init; }
-    }
 }

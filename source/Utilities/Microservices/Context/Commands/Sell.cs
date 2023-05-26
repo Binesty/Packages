@@ -10,8 +10,7 @@ namespace Microservices.Commands
         {
             context.Date = DateTime.Now;
 
-            context.Price = 0;
-            Parallel.ForEach(context.Cars, car => context.Price += car.Price);
+            context.Price = context.Cars.Sum(car => car.Price);
 
             return context;
         }

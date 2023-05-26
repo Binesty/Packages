@@ -4,6 +4,8 @@
     {
         public string Id { get; set; } = string.Empty;
 
+        public MessageType Type { get; set; } = MessageType.None;
+
         public string Owner { get; set; } = string.Empty;
 
         public string Destination { get; set; } = string.Empty;
@@ -13,5 +15,18 @@
         public string Content { get; set; } = string.Empty;
 
         public DateTime Date { get; set; }
+    }
+
+    public enum MessageType : int
+    {
+        None = 0,
+        Command,
+        Replication,
+        Subscription
+    }
+
+    public class MessageEventArgs : EventArgs
+    {
+        public Message? Message { get; init; }
     }
 }
