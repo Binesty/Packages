@@ -4,6 +4,8 @@ namespace Microservices
 {
     public class Sale : Context
     {
+        public override string Name => nameof(Sale);
+
         public override string Description => "Represents the sale of cars made to a customer";
 
         public Vendor Vendor { get; set; } = null!;

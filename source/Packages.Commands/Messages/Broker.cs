@@ -30,15 +30,15 @@ namespace Packages.Commands
         {
             _connectionFactoryEntry = new()
             {
-                HostName = _settings.Infrastructure.BrokerHost,
-                UserName = _settings.Infrastructure.BrokerUser,
-                Password = _settings.Infrastructure.BrokerPassword,
-                Port = _settings.Infrastructure.BrokerPort
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
             };
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                                    .CreateModel();
 
-            string exchange = $"entry-{_settings.Name}";            
+            string exchange = $"entry-{_settings.Name}";
             var headers = new Dictionary<string, string>
             {
                 { "microservice", _settings.Name }
@@ -50,7 +50,7 @@ namespace Packages.Commands
             _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: true);
             _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: null);
             _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: null);
-            
+
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
             {

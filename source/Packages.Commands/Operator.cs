@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Packages.Commands.Data;
+using System.Text.Json;
 
 namespace Packages.Commands
 {
@@ -6,6 +7,7 @@ namespace Packages.Commands
     {
         private ISettings? _settings;
         private Broker? _broker;
+        private IRepository _repository = null!;
         private readonly IList<Type> Commands = new List<Type>();
 
         internal Operator<TContext> Configure(ISettings settings)
@@ -13,6 +15,7 @@ namespace Packages.Commands
             _settings = settings;
 
             _broker = new(_settings);
+            _repository = new Cosmos<TContext>(_settings);
             _broker.MessageReceived += MessageReceived;
 
             return this;
@@ -39,12 +42,13 @@ namespace Packages.Commands
 
             _ = argument.Message.Type switch
             {
-                MessageType.Command => ExecuteCommand(argument.Message),
+                MessageType.Command => ExecuteCommand(argument.Message).GetAwaiter()
+                                                                       .GetResult(),
                 _ => false
             };
         }
 
-        private bool ExecuteCommand(Message message)
+        private async Task<bool> ExecuteCommand(Message message)
         {
             var context = JsonSerializer.Deserialize<TContext>(message.Content);
             if (context == null)
@@ -59,6 +63,10 @@ namespace Packages.Commands
                 return false;
 
             var change = ((ICommand<TContext>)command).Execute(context);
+            if (change is null)
+                return false;
+
+            await _repository.Save<TContext>(change);
 
             return true;
         }

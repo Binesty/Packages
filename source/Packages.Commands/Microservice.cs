@@ -4,14 +4,8 @@
     {
         private static Operator<TContext> _operator = null!;
 
-        public static Operator<TContext> Operator
-        {
-            get
-            {
-                _operator ??= new Operator<TContext>();
-                return _operator;
-            }
-        }
+        public static Operator<TContext> Operator =>
+            _operator ??= new Operator<TContext>();
 
         public static Operator<TContext> Configure(ISettings settings) =>
             Operator.Configure(settings);

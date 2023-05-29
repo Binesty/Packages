@@ -6,8 +6,12 @@
 
         public string Description { get; }
 
-        public Infrastructure Infrastructure { get; }
+        public BrokerSettings BrokerSettings { get; }
+
+        public CosmosSettings CosmosSettings { get; }
     }
 
-    public record Infrastructure(string BrokerHost, string BrokerUser, string BrokerPassword, int BrokerPort);
+    public record BrokerSettings(string Host, string User, string Password, int Port);
+
+    public record CosmosSettings(string Database, string PrimaryKey, string EndPoint);
 }

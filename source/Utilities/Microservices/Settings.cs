@@ -8,6 +8,8 @@ namespace Microservices
 
         public string Description => "Implementation with Commands of Car Sale";
 
-        Infrastructure ISettings.Infrastructure => new("192.168.0.151", "guest", "guest", 32083);
+        BrokerSettings ISettings.BrokerSettings => new("192.168.0.151", "guest", "guest", 32083);
+
+        CosmosSettings ISettings.CosmosSettings => new("", "", "");
     };
 }

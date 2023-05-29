@@ -19,15 +19,15 @@ namespace Microservices
 
             _connectionFactory = new()
             {
-                HostName = _settings.Infrastructure.BrokerHost,
-                UserName = _settings.Infrastructure.BrokerUser,
-                Password = _settings.Infrastructure.BrokerPassword,
-                Port = _settings.Infrastructure.BrokerPort
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
             };
 
             Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
 
             _channel = _connectionFactory.CreateConnection()
                                          .CreateModel();
@@ -49,6 +49,7 @@ namespace Microservices
             {
                 Id = Guid.NewGuid().ToString(),
                 Owner = "simulator",
+                Type = MessageType.Command,
                 Destination = _settings.Name,
                 Operation = nameof(Sell),
                 Date = DateTime.Now,
