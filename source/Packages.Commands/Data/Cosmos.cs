@@ -12,9 +12,9 @@ namespace Packages.Commands.Data
         private readonly string PrimaryKey;
         private readonly string EndPoint;
         private readonly CosmosClient? CosmosClient;
-        private readonly Database? Database;        
+        private readonly Database? Database;
         private readonly Container? Contexts;
-        
+
         internal Cosmos(ISettings settings)
         {
             Name = settings.CosmosSettings.Database;
@@ -47,7 +47,7 @@ namespace Packages.Commands.Data
                 ConnectionMode = ConnectionMode.Gateway,
                 RequestTimeout = TimeSpan.FromMilliseconds(60)
             };
-        }     
+        }
 
         private static async ValueTask<ItemResponse<TStorable>> Create<TStorable>(Container container, IStorable storable) where TStorable : IStorable
         {
@@ -112,4 +112,3 @@ namespace Packages.Commands.Data
         }
     }
 }
- 

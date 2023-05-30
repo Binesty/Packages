@@ -62,6 +62,9 @@ namespace Packages.Commands
             if (command is null)
                 return false;
 
+            if (!((ICommand<TContext>)command).CanExecute(context))
+                return false;
+
             var change = ((ICommand<TContext>)command).Execute(context);
             if (change is null)
                 return false;

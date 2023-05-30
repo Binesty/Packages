@@ -67,7 +67,7 @@ namespace Microservices
             Console.WriteLine($"Message Sale: {message.Id}");
         }
 
-        private static object RetrieveRadomSale()
+        private static Sale RetrieveRadomSale()
         {
             return
             new Sale()

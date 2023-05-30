@@ -15,7 +15,7 @@ namespace Microservices.Commands
             return context;
         }
 
-        public bool Validate(Sale context)
+        public bool CanExecute(Sale context)
         {
             if (context == null)
                 return false;

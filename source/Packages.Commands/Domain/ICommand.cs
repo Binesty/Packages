@@ -6,6 +6,6 @@
 
         TContext? Execute(TContext context);
 
-        bool Validate(TContext context);
+        bool CanExecute(TContext context);
     }
 }

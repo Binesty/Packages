@@ -10,6 +10,6 @@ namespace Microservices
 
         BrokerSettings ISettings.BrokerSettings => new("192.168.0.151", "guest", "guest", 32083);
 
-        CosmosSettings ISettings.CosmosSettings => new("", "", "");
+        CosmosSettings ISettings.CosmosSettings => new("binesty", "", "");
     };
 }
