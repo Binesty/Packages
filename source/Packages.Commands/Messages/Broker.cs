@@ -7,12 +7,16 @@ namespace Packages.Commands
 {
     internal class Broker
     {
+        private const string header = "microservice";
+
         private readonly ISettings _settings;
 
-        private IBasicProperties _basicPropertiesEntry = null!;
-        private IModel _channelEntry = null!;
         private ConnectionFactory _connectionFactoryEntry = null!;
+        private IModel _channelEntry = null!;
         private EventingBasicConsumer _eventingBasicConsumerEntry = null!;
+
+        private ConnectionFactory _connectionFactoryReplication = null!;
+        private IModel _channelReplication = null!;
 
         internal event EventHandler<MessageEventArgs>? MessageReceived;
 
@@ -23,6 +27,7 @@ namespace Packages.Commands
         {
             _settings = settings;
 
+            CreateReplicationChannel();
             CreateEntryChannel();
         }
 
@@ -35,21 +40,19 @@ namespace Packages.Commands
                 Password = _settings.BrokerSettings.Password,
                 Port = _settings.BrokerSettings.Port
             };
+
             _channelEntry = _connectionFactoryEntry.CreateConnection()
-                                                   .CreateModel();
+                                              .CreateModel();
 
             string exchange = $"entry-{_settings.Name}";
-            var headers = new Dictionary<string, string>
+            var headers = new Dictionary<string, object>
             {
-                { "microservice", _settings.Name }
+                { header, _settings.Name }
             };
 
-            _basicPropertiesEntry = _channelEntry.CreateBasicProperties();
-            _basicPropertiesEntry.Persistent = true;
-
-            _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: true);
-            _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: null);
+            _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
+            _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: headers);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
@@ -64,6 +67,32 @@ namespace Packages.Commands
             };
 
             _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
+        }
+
+        private void CreateReplicationChannel()
+        {
+            _connectionFactoryReplication = new()
+            {
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
+            };
+
+            _channelReplication = _connectionFactoryReplication.CreateConnection()
+                                                               .CreateModel();
+
+            string exchange = $"replications-{_settings.Name}";
+
+            _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
+
+            var headers = new Dictionary<string, object>
+            {
+                { header, "manufacturing" }
+            };
+
+            _channelReplication.QueueDeclareNoWait("manufacturing", durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelReplication.QueueBindNoWait("manufacturing", exchange, string.Empty, arguments: headers);
         }
     }
 }

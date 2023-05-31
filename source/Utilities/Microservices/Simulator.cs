@@ -8,32 +8,19 @@ namespace Microservices
 {
     internal class Simulator
     {
-        private static IBasicProperties _basicProperties = null!;
-        private static IModel _channel = null!;
+        private const string header = "microservice";
+
         private static ISettings _settings = null!;
-        private static ConnectionFactory _connectionFactory = null!;
 
         public static async Task Start(ISettings settings)
         {
             _settings = settings;
 
-            _connectionFactory = new()
-            {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
-            };
-
             Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
 
-            _channel = _connectionFactory.CreateConnection()
-                                         .CreateModel();
-
-            _basicProperties = _channel.CreateBasicProperties();
-            _basicProperties.Persistent = true;
+            SendSubscription();
 
             while (await periodicTime.WaitForNextTickAsync())
             {
@@ -43,7 +30,7 @@ namespace Microservices
 
         private static void SendCommand()
         {
-            var sale = RetrieveRadomSale();
+            var sale = CreateRadomSale();
 
             Message message = new()
             {
@@ -52,29 +39,94 @@ namespace Microservices
                 Type = MessageType.Command,
                 Destination = _settings.Name,
                 Operation = nameof(Sell),
-                Date = DateTime.Now,
+                Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(sale)
             };
 
-            string exchange = $"entry-{_settings.Name}";
-            var headers = new Dictionary<string, string>
+            ConnectionFactory _connectionFactory = new()
             {
-                { "microservice", _settings.Name }
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
             };
+
+            IModel _channel = _connectionFactory.CreateConnection()
+                                                .CreateModel();
+
+            string exchange = $"entry-{_settings.Name}";
+            var headers = new Dictionary<string, object>
+            {
+                { header, _settings.Name }
+            };
+
+            IBasicProperties _basicProperties = _channel.CreateBasicProperties();
+            _basicProperties.Persistent = true;
+            _basicProperties.Headers = headers;
 
             _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Message Sale: {message.Id}");
         }
 
-        private static Sale RetrieveRadomSale()
+        private static void SendSubscription()
+        {
+            Subscription subscription = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Subscriber = "manufacturing",
+                Date = DateTime.UtcNow,
+                Command = nameof(Sell),
+                Active = true,
+                Fields = new List<string>() { "Cars", "Store", "Date" }
+            };
+
+            Message message = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Owner = "manufacturing",
+                Type = MessageType.Subscription,
+                Destination = _settings.Name,
+                Operation = nameof(Sell),
+                Date = DateTime.UtcNow,
+                Content = JsonSerializer.Serialize(subscription)
+            };
+
+            ConnectionFactory _connectionFactory = new()
+            {
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
+            };
+
+            IModel _channel = _connectionFactory.CreateConnection()
+                                                .CreateModel();
+
+            string exchange = $"entry-{_settings.Name}";
+            var headers = new Dictionary<string, object>
+            {
+                { header, _settings.Name }
+            };
+
+            IBasicProperties _basicProperties = _channel.CreateBasicProperties();
+            _basicProperties.Persistent = true;
+            _basicProperties.Headers = headers;
+
+            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+
+            Console.WriteLine($"Subscription: {subscription.Id}");
+        }
+
+        private static Sale CreateRadomSale()
         {
             return
             new Sale()
             {
                 Cars = GetRandomCars(),
                 Vendor = GetRandomVendor(),
-                Customer = GetRandomCustomer()
+                Customer = GetRandomCustomer(),
+                Store = GetRandomStore()
             };
         }
 
@@ -83,6 +135,9 @@ namespace Microservices
 
         private static Vendor GetRandomVendor() =>
             Vendors.ElementAt(RandomNumberGenerator.GetInt32(0, Vendors.Count - 1));
+
+        private static Store GetRandomStore() =>
+            Stores.ElementAt(RandomNumberGenerator.GetInt32(0, Stores.Count - 1));
 
         private static IEnumerable<Car> GetRandomCars()
         {
@@ -114,6 +169,14 @@ namespace Microservices
             new Car("Hyndai", "HB20", 2017, 89_000),
             new Car("Toyota", "Corolla", 2022, 105_000),
             new Car("BMW", "X6", 2023, 320_000)
+        };
+
+        public static List<Store> Stores => new()
+        {
+            new Store("001", "CB-VAC", "Brazil"),
+            new Store("002", "STORE-SSO", "USA"),
+            new Store("003", "RITT03", "Spain"),
+            new Store("004", "CARSTORE", "China")
         };
 
         public static List<Vendor> Vendors => new()

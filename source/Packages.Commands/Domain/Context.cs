@@ -1,6 +1,4 @@
-﻿using Packages.Commands.Data;
-
-namespace Packages.Commands
+﻿namespace Packages.Commands
 {
     public abstract class Context : IStorable
     {
@@ -12,8 +10,10 @@ namespace Packages.Commands
 
         public string Partition => Name;
 
+        public DateTime CreateDate => DateTime.UtcNow;
+
         public StorableStatus StorableStatus { get; set; }
 
-        public DateTime CreateDate => DateTime.UtcNow;
+        StorableType IStorable.StorableType { get; set; } = StorableType.Contexts;
     }
 }

@@ -2,7 +2,7 @@
 using Microsoft.Azure.Cosmos.Linq;
 using System.Linq.Expressions;
 
-namespace Packages.Commands.Data
+namespace Packages.Commands
 {
     internal sealed class Cosmos<TContext> : IRepository where TContext : Context
     {
@@ -14,6 +14,7 @@ namespace Packages.Commands.Data
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
+        private readonly Container? Subscriptions;
 
         internal Cosmos(ISettings settings)
         {
@@ -21,17 +22,19 @@ namespace Packages.Commands.Data
             PrimaryKey = settings.CosmosSettings.PrimaryKey;
             EndPoint = settings.CosmosSettings.EndPoint;
 
-            string contexts = "Contexts";
-            string partition = "name";
-
             CosmosClient = new CosmosClient(EndPoint, PrimaryKey, GetOptions());
             Database = CosmosClient?.GetDatabase(Name);
 
-            Contexts = Database?.CreateContainerIfNotExistsAsync(contexts, $"/{partition}")
+            Contexts = Database?.CreateContainerIfNotExistsAsync(nameof(Contexts), "/name")
                                 .GetAwaiter()
                                 .GetResult();
 
-            Contexts = CosmosClient?.GetContainer(Name, contexts);
+            Subscriptions = Database?.CreateContainerIfNotExistsAsync(nameof(Subscriptions), "/subscriber")
+                                     .GetAwaiter()
+                                     .GetResult();
+
+            Contexts = CosmosClient?.GetContainer(Name, nameof(Contexts));
+            Subscriptions = CosmosClient?.GetContainer(Name, nameof(Subscriptions));
         }
 
         private static CosmosClientOptions GetOptions()
@@ -46,6 +49,18 @@ namespace Packages.Commands.Data
 
                 ConnectionMode = ConnectionMode.Gateway,
                 RequestTimeout = TimeSpan.FromMilliseconds(60)
+            };
+        }
+
+        private Container? GetContainer(StorableType storableType)
+        {
+            return
+            storableType switch
+            {
+                StorableType.Contexts => Contexts,
+                StorableType.Subscriptions => Subscriptions,
+
+                _ => default,
             };
         }
 
@@ -66,14 +81,15 @@ namespace Packages.Commands.Data
 
         async Task<IStorable?> IRepository.Save<TStorable>(IStorable storable)
         {
-            if (Contexts is null)
+            var container = GetContainer(storable.StorableType);
+            if (container is null)
                 return default;
 
             var document = storable.StorableStatus switch
             {
-                StorableStatus.New => await Create<TStorable>(Contexts, storable),
-                StorableStatus.Changed => await Replace<TStorable>(Contexts, storable),
-                StorableStatus.Deleted => await Delete<TStorable>(Contexts, storable),
+                StorableStatus.New => await Create<TStorable>(container, storable),
+                StorableStatus.Changed => await Replace<TStorable>(container, storable),
+                StorableStatus.Deleted => await Delete<TStorable>(container, storable),
 
                 _ => default,
             };
@@ -87,14 +103,15 @@ namespace Packages.Commands.Data
             return default;
         }
 
-        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, int units)
+        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, int units)
         {
-            if (Contexts is null)
+            var container = GetContainer(storableType);
+            if (container is null)
                 return Enumerable.Empty<TStorable>();
 
             var items = new List<TStorable>();
 
-            var queryable = Contexts.GetItemLinqQueryable<TStorable>(true).Where(expression);
+            var queryable = container.GetItemLinqQueryable<TStorable>(true).Where(expression);
             queryable = (units > 0) ? queryable.Take(units) : queryable;
 
             using FeedIterator<TStorable> feedIterator = queryable.ToFeedIterator();

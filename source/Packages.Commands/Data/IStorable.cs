@@ -1,4 +1,4 @@
-﻿namespace Packages.Commands.Data
+﻿namespace Packages.Commands
 {
     public interface IStorable
     {
@@ -8,6 +8,22 @@
 
         StorableStatus StorableStatus { get; set; }
 
+        StorableType StorableType { get; set; }
+
         DateTime CreateDate { get; }
+    }
+
+    public enum StorableStatus
+    {
+        New,
+        NotChanged,
+        Changed,
+        Deleted
+    }
+
+    public enum StorableType
+    {
+        Contexts,
+        Subscriptions
     }
 }

@@ -1,5 +1,4 @@
-﻿using Packages.Commands.Data;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace Packages.Commands
 {
@@ -40,12 +39,26 @@ namespace Packages.Commands
             if (argument.Message is null)
                 return;
 
-            _ = argument.Message.Type switch
+            Task.Run(async () =>
             {
-                MessageType.Command => ExecuteCommand(argument.Message).GetAwaiter()
-                                                                       .GetResult(),
-                _ => false
-            };
+                _ = argument.Message.Type switch
+                {
+                    MessageType.Command => await ExecuteCommand(argument.Message),
+                    MessageType.Subscription => await RegisterSubscription(argument.Message),
+                    _ => false
+                };
+            });
+        }
+
+        private async Task<bool> RegisterSubscription(Message message)
+        {
+            var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
+            if (subscription == null)
+                return false;
+
+            await _repository.Save<Subscription>(subscription);
+
+            return true;
         }
 
         private async Task<bool> ExecuteCommand(Message message)

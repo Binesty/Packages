@@ -1,4 +1,4 @@
-﻿using Packages.Commands.Domain;
+﻿using Packages.Commands;
 using System.Linq.Expressions;
 
 namespace Microservices.Replications

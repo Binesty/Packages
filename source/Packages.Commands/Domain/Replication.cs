@@ -1,4 +1,4 @@
-﻿namespace Packages.Commands.Domain
+﻿namespace Packages.Commands
 {
     public class Replication
     {
