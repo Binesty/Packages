@@ -12,7 +12,7 @@
 
         public bool Active { get; set; } = false;
 
-        public IEnumerable<string> Fields { get; set; } = Enumerable.Empty<string>();
+        public List<string> Fields { get; set; } = new();
 
         public string Partition => Subscriber;
 

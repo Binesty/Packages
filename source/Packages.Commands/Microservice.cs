@@ -13,7 +13,7 @@
         public static Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext> =>
             Operator.Execute<TCommand>();
 
-        public static Operator<TContext> Start() =>
+        public static Task<Operator<TContext>> Start() =>
             Operator.Start();
     }
 }

@@ -9,9 +9,12 @@ namespace Microservices
 
         private static void Main()
         {
-            Microservice<Sale>.Configure(Settings)
-                              .Execute<Sell>()
-                              .Start();
+            Task.Run(async () =>
+            {
+                await Microservice<Sale>.Configure(Settings)
+                                        .Execute<Sell>()
+                                        .Start();
+            });
 
             Task.Run(() => Simulator.Start(Settings));
 

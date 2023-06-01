@@ -4,18 +4,16 @@ namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private ISettings? _settings;
+        private ISettings _settings = null!;
         private Broker? _broker;
         private IRepository _repository = null!;
         private readonly IList<Type> Commands = new List<Type>();
+        private IEnumerable<Subscription> Subscriptions = Enumerable.Empty<Subscription>();
 
         internal Operator<TContext> Configure(ISettings settings)
         {
             _settings = settings;
-
-            _broker = new(_settings);
             _repository = new Cosmos<TContext>(_settings);
-            _broker.MessageReceived += MessageReceived;
 
             return this;
         }
@@ -29,8 +27,13 @@ namespace Packages.Commands
             return this;
         }
 
-        public Operator<TContext> Start()
+        public async Task<Operator<TContext>> Start()
         {
+            Subscriptions = await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions);
+
+            _broker = new(_settings, Subscriptions);
+            _broker.MessageReceived += MessageReceived;
+
             return this;
         }
 
@@ -47,7 +50,11 @@ namespace Packages.Commands
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
                     _ => false
                 };
-            });
+            }).ContinueWith(continuetion =>
+            {
+                argument.Message.Notes = continuetion.Exception?.Message;
+                _broker?.PublishError(argument.Message);
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
 
         private async Task<bool> RegisterSubscription(Message message)
@@ -84,7 +91,28 @@ namespace Packages.Commands
 
             await _repository.Save<TContext>(change);
 
+            SendReplications(change);
+
             return true;
+        }
+
+        private void SendReplications(TContext context)
+        {
+            Parallel.ForEach(Subscriptions, subscription =>
+            {
+                Message message = new()
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Owner = _settings.Name,
+                    Type = MessageType.Replication,
+                    Destination = subscription.Subscriber,
+                    Operation = nameof(Replication),
+                    Date = DateTime.UtcNow,
+                    Content = JsonSerializer.Serialize(context)
+                };
+
+                _broker?.Replicate(message);
+            });
         }
     }
 }

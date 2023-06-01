@@ -9,6 +9,7 @@ namespace Microservices
     internal class Simulator
     {
         private const string header = "microservice";
+        private const string exchangeEntryPrefix = "entry";
 
         private static ISettings _settings = null!;
 
@@ -18,7 +19,7 @@ namespace Microservices
 
             Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(3000));
 
             SendSubscription();
 
@@ -54,7 +55,7 @@ namespace Microservices
             IModel _channel = _connectionFactory.CreateConnection()
                                                 .CreateModel();
 
-            string exchange = $"entry-{_settings.Name}";
+            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, _settings.Name }
@@ -103,7 +104,7 @@ namespace Microservices
             IModel _channel = _connectionFactory.CreateConnection()
                                                 .CreateModel();
 
-            string exchange = $"entry-{_settings.Name}";
+            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, _settings.Name }
