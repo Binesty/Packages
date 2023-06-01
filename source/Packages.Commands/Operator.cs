@@ -8,7 +8,7 @@ namespace Packages.Commands
         private Broker? _broker;
         private IRepository _repository = null!;
         private readonly IList<Type> Commands = new List<Type>();
-        private IEnumerable<Subscription> Subscriptions = Enumerable.Empty<Subscription>();
+        private IList<Subscription> Subscriptions = new List<Subscription>();
 
         internal Operator<TContext> Configure(ISettings settings)
         {
@@ -29,7 +29,7 @@ namespace Packages.Commands
 
         public async Task<Operator<TContext>> Start()
         {
-            Subscriptions = await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions);
+            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
 
             _broker = new(_settings, Subscriptions);
             _broker.MessageReceived += MessageReceived;
@@ -48,6 +48,7 @@ namespace Packages.Commands
                 {
                     MessageType.Command => await ExecuteCommand(argument.Message),
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
+
                     _ => false
                 };
             }).ContinueWith(continuetion =>
@@ -64,6 +65,10 @@ namespace Packages.Commands
                 return false;
 
             await _repository.Save<Subscription>(subscription);
+
+            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+
+            _broker?.UpdateBindingSubscription(Subscriptions);
 
             return true;
         }

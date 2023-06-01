@@ -14,7 +14,7 @@ namespace Packages.Commands
         private const string exchangeReplicationPrefix = "replications";
 
         private readonly ISettings _settings;
-        private IEnumerable<Subscription> _subscriptions;
+        private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
         private IModel _channelEntry = null!;
@@ -31,7 +31,7 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message });
 
-        public Broker(ISettings settings, IEnumerable<Subscription> subscriptions)
+        public Broker(ISettings settings, IList<Subscription> subscriptions)
         {
             _settings = settings;
             _subscriptions = subscriptions;
@@ -39,6 +39,25 @@ namespace Packages.Commands
             CreateErrorsChannel();
             CreateReplicationChannel();
             CreateEntryChannel();
+        }
+
+        internal void UpdateBindingSubscription(IList<Subscription> subscriptions)
+        {
+            if (subscriptions.Count == 0)
+                return;
+
+            _subscriptions.Clear();
+            _subscriptions = new List<Subscription>(subscriptions);
+
+            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+
+            foreach (var subscription in _subscriptions)
+            {
+                _channelReplication.QueueBindNoWait(subscription.Subscriber,
+                                                    exchange,
+                                                    _settings.Name,
+                                                    arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
+            }
         }
 
         private void CreateErrorsChannel()
@@ -76,13 +95,7 @@ namespace Packages.Commands
 
             _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
 
-            Dictionary<string, object> headers = new();
-
-            foreach (var subscription in _subscriptions)
-                headers.Add(header, subscription.Subscriber);
-
-            foreach (var subscription in _subscriptions)
-                _channelReplication.QueueBindNoWait(subscription.Subscriber, exchange, _settings.Name, arguments: headers);
+            UpdateBindingSubscription(_subscriptions);
         }
 
         private void CreateEntryChannel()
@@ -123,12 +136,12 @@ namespace Packages.Commands
             _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
         }
 
-        public void PublishError(Message message)
+        internal void PublishError(Message message)
         {
             _channelEntry.BasicPublish(errors, errors, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
-        public void Replicate(Message message)
+        internal void Replicate(Message message)
         {
             string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>

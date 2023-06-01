@@ -10,8 +10,13 @@ namespace Microservices
     {
         private const string header = "microservice";
         private const string exchangeEntryPrefix = "entry";
+        private const string microserviceManufacturing = "manufacturing";
+        private const string microserviceCommunication = "communication";
 
         private static ISettings _settings = null!;
+
+        private static ConnectionFactory _connectionFactory = null!;
+        private static IModel _channel = null!;
 
         public static async Task Start(ISettings settings)
         {
@@ -19,14 +24,51 @@ namespace Microservices
 
             Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(3000));
+            _connectionFactory = new()
+            {
+                HostName = _settings.BrokerSettings.Host,
+                UserName = _settings.BrokerSettings.User,
+                Password = _settings.BrokerSettings.Password,
+                Port = _settings.BrokerSettings.Port
+            };
 
-            SendSubscription();
+            _channel = _connectionFactory.CreateConnection()
+                                         .CreateModel();
 
+
+            CreateQueuesReplications();
+            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+
+            int count = 0;
             while (await periodicTime.WaitForNextTickAsync())
             {
                 SendCommand();
+                count++;
+
+                if (count == 5)
+                    SendSubscription(microserviceCommunication);
+
+                if (count == 10)
+                    SendSubscription(microserviceManufacturing);
+
+                if (count == 15)
+                    break;
             }
+        }
+
+        private static void CreateQueuesReplications()
+        {
+            _channel.QueueDeclareNoWait(microserviceCommunication,
+                                        durable: true, exclusive: false,
+                                        autoDelete: false, arguments:
+                                        new Dictionary<string, object> { { header, microserviceCommunication } });
+
+            _channel.QueueDeclareNoWait(microserviceManufacturing,
+                                        durable: true, exclusive: false,
+                                        autoDelete: false, arguments:
+                                        new Dictionary<string, object> { { header, microserviceCommunication } });
         }
 
         private static void SendCommand()
@@ -44,17 +86,6 @@ namespace Microservices
                 Content = JsonSerializer.Serialize(sale)
             };
 
-            ConnectionFactory _connectionFactory = new()
-            {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
-            };
-
-            IModel _channel = _connectionFactory.CreateConnection()
-                                                .CreateModel();
-
             string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
@@ -70,12 +101,12 @@ namespace Microservices
             Console.WriteLine($"Message Sale: {message.Id}");
         }
 
-        private static void SendSubscription()
+        private static void SendSubscription(string name)
         {
             Subscription subscription = new()
             {
                 Id = Guid.NewGuid().ToString(),
-                Subscriber = "manufacturing",
+                Subscriber = name,
                 Date = DateTime.UtcNow,
                 Command = nameof(Sell),
                 Active = true,
@@ -85,7 +116,7 @@ namespace Microservices
             Message message = new()
             {
                 Id = Guid.NewGuid().ToString(),
-                Owner = "manufacturing",
+                Owner = name,
                 Type = MessageType.Subscription,
                 Destination = _settings.Name,
                 Operation = nameof(Sell),
@@ -116,7 +147,7 @@ namespace Microservices
 
             _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
-            Console.WriteLine($"Subscription: {subscription.Id}");
+            Console.WriteLine($"Subscription from {name}: {subscription.Id}");
         }
 
         private static Sale CreateRadomSale()
