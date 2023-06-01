@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Dynamic;
+using System.Text.Json;
 
 namespace Packages.Commands
 {
@@ -61,7 +62,7 @@ namespace Packages.Commands
         private async Task<bool> RegisterSubscription(Message message)
         {
             var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
-            if (subscription == null)
+            if (subscription == null || !Subscription.Validade(subscription))
                 return false;
 
             await _repository.Save<Subscription>(subscription);
@@ -105,6 +106,8 @@ namespace Packages.Commands
         {
             Parallel.ForEach(Subscriptions, subscription =>
             {
+                var replicaton = Operator<TContext>.FilterFieldsContext(context, subscription);
+
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -113,11 +116,29 @@ namespace Packages.Commands
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),
                     Date = DateTime.UtcNow,
-                    Content = JsonSerializer.Serialize(context)
+                    Content = JsonSerializer.Serialize(replicaton)
                 };
 
                 _broker?.Replicate(message);
             });
+        }
+
+        private static dynamic FilterFieldsContext(TContext context, Subscription subscription)
+        {
+            var replication = new ExpandoObject();
+
+            foreach (var field in subscription.Fields)
+            {
+                var property = context.GetType()
+                                      .GetProperty(field);
+
+                if (property is null)
+                    continue;
+
+                replication.TryAdd(field, property.GetValue(context));
+            }   
+
+            return replication;
         }
     }
 }

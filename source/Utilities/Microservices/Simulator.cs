@@ -39,22 +39,23 @@ namespace Microservices
             CreateQueuesReplications();
             Task.Delay(TimeSpan.FromSeconds(10)).Wait();
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
 
             int count = 0;
             while (await periodicTime.WaitForNextTickAsync())
             {
                 SendCommand();
-                count++;
 
-                if (count == 5)
+                if (count == 2)
                     SendSubscription(microserviceCommunication);
 
-                if (count == 10)
+                if (count == 4)
                     SendSubscription(microserviceManufacturing);
 
-                if (count == 15)
+                if (count == 10)
                     break;
+
+                count++;
             }
         }
 
