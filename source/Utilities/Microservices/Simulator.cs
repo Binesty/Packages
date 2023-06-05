@@ -37,31 +37,29 @@ namespace Microservices
                                          .CreateModel();
 
             CreateQueuesReplications();
-            //Task.Delay(TimeSpan.FromSeconds(5)).Wait();
+            Task.Delay(TimeSpan.FromSeconds(1)).Wait();
 
             var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
 
-            SendReplication();
+            int count = 0;
+            while (await periodicTime.WaitForNextTickAsync())
+            {
+                if (count == 15)
+                    break;
 
-            //int count = 0;
-            //while (await periodicTime.WaitForNextTickAsync())
-            //{
-            //    SendCommand();
+                if (count == 0)
+                    SendSubscription(microserviceCommunication);
 
-            //    if (count == 2)
-            //        SendSubscription(microserviceCommunication);
+                if (count == 0)
+                    SendSubscription(microserviceManufacturing);
 
-            //    if (count == 4)
-            //        SendSubscription(microserviceManufacturing);
+                if (count == 0)
+                    SendReplication();
 
-            //    if (count == 6)
-            //        SendReplication();
+                SendCommand();
 
-            //    if (count == 10)
-            //        break;
-
-            //    count++;
-            //}
+                count++;
+            }
         }
 
         private static void SendReplication()

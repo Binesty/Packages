@@ -28,8 +28,8 @@ namespace Packages.Commands
 
         internal event EventHandler<MessageEventArgs>? MessageReceived;
 
-        public virtual void OnMessageReceived(Message message) =>
-            MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message });
+        public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
+            MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
         public Broker(ISettings settings, IList<Subscription> subscriptions)
         {
@@ -124,16 +124,19 @@ namespace Packages.Commands
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
             {
-                _channelEntry.BasicAck(deliveryTag: content.DeliveryTag, multiple: false);
-
                 var message = JsonSerializer.Deserialize<Message>(Encoding.UTF8.GetString(content.Body.ToArray()));
                 if (message != null)
                 {
-                    OnMessageReceived(message);
+                    OnMessageReceived(message, content.DeliveryTag);
                 }
             };
 
             _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
+        }
+
+        internal void ConfirmDelivery(ulong deliveryTag)
+        {
+            _channelEntry.BasicAck(deliveryTag: deliveryTag, multiple: false);
         }
 
         internal void PublishError(Message message)

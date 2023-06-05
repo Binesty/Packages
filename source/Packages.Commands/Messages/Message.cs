@@ -1,4 +1,6 @@
-﻿namespace Packages.Commands
+﻿using RabbitMQ.Client;
+
+namespace Packages.Commands
 {
     public class Message
     {
@@ -30,5 +32,7 @@
     public class MessageEventArgs : EventArgs
     {
         public Message? Message { get; init; }
+
+        public ulong DeliveryTag { get; init; }
     }
 }

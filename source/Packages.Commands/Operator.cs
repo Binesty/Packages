@@ -63,6 +63,9 @@ namespace Packages.Commands
 
                     _ => false
                 };
+
+                _broker?.ConfirmDelivery(argument.DeliveryTag);
+
             }).ContinueWith(continuetion =>
             {
                 argument.Message.Notes = continuetion.Exception?.Message;
