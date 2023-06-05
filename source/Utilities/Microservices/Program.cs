@@ -1,4 +1,5 @@
 ﻿using Microservices.Commands;
+using Microservices.Replications;
 using Packages.Commands;
 
 namespace Microservices
@@ -12,8 +13,9 @@ namespace Microservices
             Task.Run(async () =>
             {
                 await Microservice<Sale>.Configure(Settings)
-                                        .Execute<Sell>()
-                                        .Start();
+                                            .Execute<Sell>()
+                                                .Apply<CarEndManufacturing>()
+                                                    .Start();
             });
 
             Task.Run(() => Simulator.Start(Settings));

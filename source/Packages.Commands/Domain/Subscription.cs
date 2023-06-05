@@ -25,7 +25,7 @@
         internal static bool Validade(Subscription subscription)
         {
             if (subscription.Fields is null || subscription.Fields.Count == 0)
-                return false;  
+                return false;
 
             if (string.IsNullOrEmpty(subscription.Subscriber))
                 return false;

@@ -1,4 +1,5 @@
 ﻿using Microservices.Commands;
+using Microservices.Replications;
 using Packages.Commands;
 using RabbitMQ.Client;
 using System.Security.Cryptography;
@@ -35,28 +36,70 @@ namespace Microservices
             _channel = _connectionFactory.CreateConnection()
                                          .CreateModel();
 
-
             CreateQueuesReplications();
-            Task.Delay(TimeSpan.FromSeconds(10)).Wait();
+            //Task.Delay(TimeSpan.FromSeconds(5)).Wait();
 
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
+            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
 
-            int count = 0;
-            while (await periodicTime.WaitForNextTickAsync())
+            SendReplication();
+
+            //int count = 0;
+            //while (await periodicTime.WaitForNextTickAsync())
+            //{
+            //    SendCommand();
+
+            //    if (count == 2)
+            //        SendSubscription(microserviceCommunication);
+
+            //    if (count == 4)
+            //        SendSubscription(microserviceManufacturing);
+
+            //    if (count == 6)
+            //        SendReplication();
+
+            //    if (count == 10)
+            //        break;
+
+            //    count++;
+            //}
+        }
+
+        private static void SendReplication()
+        {
+            Replication replication = new()
             {
-                SendCommand();
+                Content = new
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Model = "Mercedes",
+                    Name = "GLA"
+                }
+            };
 
-                if (count == 2)
-                    SendSubscription(microserviceCommunication);
+            Message message = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Owner = microserviceManufacturing,
+                Type = MessageType.Replication,
+                Destination = _settings.Name,
+                Operation = nameof(CarEndManufacturing),
+                Date = DateTime.UtcNow,
+                Content = JsonSerializer.Serialize(replication)
+            };
 
-                if (count == 4)
-                    SendSubscription(microserviceManufacturing);
+            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            var headers = new Dictionary<string, object>
+            {
+                { header, _settings.Name }
+            };
 
-                if (count == 10)
-                    break;
+            IBasicProperties _basicProperties = _channel.CreateBasicProperties();
+            _basicProperties.Persistent = true;
+            _basicProperties.Headers = headers;
 
-                count++;
-            }
+            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+
+            Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Content.Id}");
         }
 
         private static void CreateQueuesReplications()
@@ -124,17 +167,6 @@ namespace Microservices
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(subscription)
             };
-
-            ConnectionFactory _connectionFactory = new()
-            {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
-            };
-
-            IModel _channel = _connectionFactory.CreateConnection()
-                                                .CreateModel();
 
             string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>

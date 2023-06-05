@@ -13,6 +13,9 @@
         public static Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext> =>
             Operator.Execute<TCommand>();
 
+        public static Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext> =>
+           Operator.Apply<TReplicable>();
+
         public static Task<Operator<TContext>> Start() =>
             Operator.Start();
     }

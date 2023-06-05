@@ -23,8 +23,11 @@ namespace Packages.Commands
             EndPoint = settings.CosmosSettings.EndPoint;
 
             CosmosClient = new CosmosClient(EndPoint, PrimaryKey, GetOptions());
-            Database = CosmosClient?.GetDatabase(Name);
 
+            CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
+                                                             .GetResult();
+
+            Database = CosmosClient?.GetDatabase(Name);
             Contexts = Database?.CreateContainerIfNotExistsAsync(nameof(Contexts), "/name")
                                 .GetAwaiter()
                                 .GetResult();
@@ -36,7 +39,7 @@ namespace Packages.Commands
             Contexts = CosmosClient?.GetContainer(Name, nameof(Contexts));
             Subscriptions = CosmosClient?.GetContainer(Name, nameof(Subscriptions));
         }
-
+       
         private static CosmosClientOptions GetOptions()
         {
             return

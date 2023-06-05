@@ -9,6 +9,7 @@ namespace Packages.Commands
         private Broker? _broker;
         private IRepository _repository = null!;
         private readonly IList<Type> Commands = new List<Type>();
+        private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
         internal Operator<TContext> Configure(ISettings settings)
@@ -24,6 +25,15 @@ namespace Packages.Commands
             var command = Commands.FirstOrDefault(find => find.FullName == typeof(TCommand).FullName);
             if (command is null)
                 Commands.Add(typeof(TCommand));
+
+            return this;
+        }
+
+        public Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
+        {
+            var replication = Replications.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
+            if (replication is null)
+                Replications.Add(typeof(TReplicable));
 
             return this;
         }
@@ -49,6 +59,7 @@ namespace Packages.Commands
                 {
                     MessageType.Command => await ExecuteCommand(argument.Message),
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
+                    MessageType.Replication => await ApplyReplication(argument.Message),
 
                     _ => false
                 };
@@ -59,17 +70,21 @@ namespace Packages.Commands
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
 
-        private async Task<bool> RegisterSubscription(Message message)
+        private async Task<bool> ApplyReplication(Message message)
         {
-            var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
-            if (subscription == null || !Subscription.Validade(subscription))
+            var replication = JsonSerializer.Deserialize<Replication>(message.Content);
+            if (replication == null)
                 return false;
 
-            await _repository.Save<Subscription>(subscription);
+            var replicationType = Replications.FirstOrDefault(item => item.Name == message.Operation);
+            if (replicationType is null)
+                return false;
 
-            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+            var replicate = Activator.CreateInstance(replicationType);
+            if (replicate is null)
+                return false;
 
-            _broker?.UpdateBindingSubscription(Subscriptions);
+            var contexts = await _repository.Fetch(((IReplicable<TContext>)replicate).InContexts(replication), StorableType.Contexts);
 
             return true;
         }
@@ -98,6 +113,21 @@ namespace Packages.Commands
             await _repository.Save<TContext>(change);
 
             SendReplications(change);
+
+            return true;
+        }
+
+        private async Task<bool> RegisterSubscription(Message message)
+        {
+            var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
+            if (subscription == null || !Subscription.Validade(subscription))
+                return false;
+
+            await _repository.Save<Subscription>(subscription);
+
+            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+
+            _broker?.UpdateBindingSubscription(Subscriptions);
 
             return true;
         }
@@ -136,7 +166,7 @@ namespace Packages.Commands
                     continue;
 
                 replication.TryAdd(field, property.GetValue(context));
-            }   
+            }
 
             return replication;
         }
