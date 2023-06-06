@@ -39,7 +39,7 @@ namespace Packages.Commands
             Contexts = CosmosClient?.GetContainer(Name, nameof(Contexts));
             Subscriptions = CosmosClient?.GetContainer(Name, nameof(Subscriptions));
         }
-       
+
         private static CosmosClientOptions GetOptions()
         {
             return

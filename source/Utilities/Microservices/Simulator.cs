@@ -44,7 +44,7 @@ namespace Microservices
             int count = 0;
             while (await periodicTime.WaitForNextTickAsync())
             {
-                if (count == 15)
+                if (count == 1)
                     break;
 
                 if (count == 0)
@@ -53,10 +53,8 @@ namespace Microservices
                 if (count == 0)
                     SendSubscription(microserviceManufacturing);
 
-                if (count == 0)
-                    SendReplication();
-
                 SendCommand();
+                SendReplication();
 
                 count++;
             }

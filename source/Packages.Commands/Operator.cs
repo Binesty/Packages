@@ -65,7 +65,6 @@ namespace Packages.Commands
                 };
 
                 _broker?.ConfirmDelivery(argument.DeliveryTag);
-
             }).ContinueWith(continuetion =>
             {
                 argument.Message.Notes = continuetion.Exception?.Message;
@@ -88,6 +87,21 @@ namespace Packages.Commands
                 return false;
 
             var contexts = await _repository.Fetch(((IReplicable<TContext>)replicate).InContexts(replication), StorableType.Contexts);
+
+            Parallel.ForEach(contexts, async context =>
+            {
+                if (!((IReplicable<TContext>)replicate).CanApply(replication))
+                    return;
+
+                var change = ((IReplicable<TContext>)replicate).Apply(context, replication);
+                if (change is null)
+                    return;
+
+                context.StorableStatus = StorableStatus.Changed;
+                await _repository.Save<TContext>(change);
+
+                SendReplications(change);
+            });
 
             return true;
         }

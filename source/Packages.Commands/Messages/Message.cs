@@ -1,6 +1,4 @@
-﻿using RabbitMQ.Client;
-
-namespace Packages.Commands
+﻿namespace Packages.Commands
 {
     public class Message
     {
