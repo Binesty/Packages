@@ -51,7 +51,7 @@ namespace Packages.Commands
                 },
 
                 ConnectionMode = ConnectionMode.Gateway,
-                RequestTimeout = TimeSpan.FromMilliseconds(30)
+                RequestTimeout = TimeSpan.FromSeconds(30)
             };
         }
 
