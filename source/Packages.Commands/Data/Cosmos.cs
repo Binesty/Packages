@@ -106,7 +106,7 @@ namespace Packages.Commands
             return default;
         }
 
-        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, int units)
+        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, Expression<Func<TStorable, bool>>? optionalExpression, int units)
         {
             var container = GetContainer(storableType);
             if (container is null)
@@ -115,6 +115,8 @@ namespace Packages.Commands
             var items = new List<TStorable>();
 
             var queryable = container.GetItemLinqQueryable<TStorable>(true).Where(expression);
+
+            queryable = optionalExpression is not null ? queryable.Where(optionalExpression) : queryable;
             queryable = (units > 0) ? queryable.Take(units) : queryable;
 
             using FeedIterator<TStorable> feedIterator = queryable.ToFeedIterator();

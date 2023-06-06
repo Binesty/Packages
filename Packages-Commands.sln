@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Packages.Commands", "source
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{0B8A541B-02A0-4260-A6D6-10B956B302EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservices", "source\Utilities\Microservices\Microservices.csproj", "{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservices", "source\Utilities\Microservices\Microservices.csproj", "{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C-CF93-40C8-9023-D27153E8CA44}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,6 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C
 		Icon.png = Icon.png
 		nuget.config = nuget.config
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipelines", "Pipelines", "{798EFC4C-92AF-4EDD-A234-DE1D3449DE77}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\preview.yml = .github\workflows\preview.yml
+		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
 Global

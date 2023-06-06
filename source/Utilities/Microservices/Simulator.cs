@@ -44,7 +44,7 @@ namespace Microservices
             int count = 0;
             while (await periodicTime.WaitForNextTickAsync())
             {
-                if (count == 1)
+                if (count == 2)
                     break;
 
                 if (count == 0)
@@ -64,6 +64,7 @@ namespace Microservices
         {
             Replication replication = new()
             {
+                Id = Guid.NewGuid().ToString(),
                 Content = new
                 {
                     Id = Guid.NewGuid().ToString(),

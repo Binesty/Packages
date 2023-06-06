@@ -1,4 +1,6 @@
-﻿namespace Packages.Commands
+﻿using System.Security.Policy;
+
+namespace Packages.Commands
 {
     public abstract class Context : IStorable
     {
@@ -15,5 +17,7 @@
         public StorableStatus StorableStatus { get; set; }
 
         StorableType IStorable.StorableType { get; set; } = StorableType.Contexts;
+
+        public string? LastReplicationId { get; set; }
     }
 }

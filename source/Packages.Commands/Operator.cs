@@ -1,5 +1,6 @@
 ﻿using System.Dynamic;
 using System.Text.Json;
+using System.Linq.Expressions;
 
 namespace Packages.Commands
 {
@@ -86,7 +87,10 @@ namespace Packages.Commands
             if (replicate is null)
                 return false;
 
-            var contexts = await _repository.Fetch(((IReplicable<TContext>)replicate).InContexts(replication), StorableType.Contexts);
+            var queryImplemented = ((IReplicable<TContext>)replicate).InContexts(replication);
+            Expression<Func<TContext, bool>> queryFilterReplicationId = context => context.LastReplicationId != replication.Id;
+
+            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, queryFilterReplicationId);
 
             Parallel.ForEach(contexts, async context =>
             {
@@ -98,6 +102,8 @@ namespace Packages.Commands
                     return;
 
                 context.StorableStatus = StorableStatus.Changed;
+                context.LastReplicationId = replication.Id;
+
                 await _repository.Save<TContext>(change);
 
                 SendReplications(change);
