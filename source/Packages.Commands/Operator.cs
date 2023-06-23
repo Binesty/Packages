@@ -6,16 +6,18 @@ namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private ISettings _settings = null!;
+        private IContract _contract = null!;
+        private Settings _settings = null!; 
         private Broker? _broker;
         private IRepository _repository = null!;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
-        internal Operator<TContext> Configure(ISettings settings)
+        internal Operator<TContext> Configure(IContract contract)
         {
-            _settings = settings;
+            _contract = contract;
+            _settings = new(_contract);
             _repository = new Cosmos<TContext>(_settings);
 
             return this;
@@ -164,7 +166,7 @@ namespace Packages.Commands
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Owner = _settings.Name,
+                    Owner = _contract.Name,
                     Type = MessageType.Replication,
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),

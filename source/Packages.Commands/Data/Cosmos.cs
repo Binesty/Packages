@@ -16,7 +16,7 @@ namespace Packages.Commands
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(ISettings settings)
+        internal Cosmos(Settings settings)
         {
             Name = settings.CosmosSettings.Database;
             PrimaryKey = settings.CosmosSettings.PrimaryKey;

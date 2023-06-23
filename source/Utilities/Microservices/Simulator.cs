@@ -14,23 +14,23 @@ namespace Microservices
         private const string microserviceManufacturing = "manufacturing";
         private const string microserviceCommunication = "communication";
 
-        private static ISettings _settings = null!;
+        private static IContract _contract = null!;
 
         private static ConnectionFactory _connectionFactory = null!;
         private static IModel _channel = null!;
 
-        public static async Task Start(ISettings settings)
+        public static async Task Start(IContract contract)
         {
-            _settings = settings;
+            _contract = contract;
 
-            Console.WriteLine($"Simulator to send messages to: {_settings.Name}");
+            Console.WriteLine($"Simulator to send messages to: {_contract.Name}");
 
             _connectionFactory = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = "",
+                UserName = "",
+                Password = "",
+                Port = 1000
             };
 
             _channel = _connectionFactory.CreateConnection()
@@ -41,17 +41,15 @@ namespace Microservices
 
             var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
 
+            SendSubscription(microserviceCommunication);
+            SendSubscription(microserviceManufacturing);
+
             int count = 0;
+            int total = 100;
             while (await periodicTime.WaitForNextTickAsync())
             {
-                if (count == 2)
+                if (count == total)
                     break;
-
-                if (count == 0)
-                    SendSubscription(microserviceCommunication);
-
-                if (count == 0)
-                    SendSubscription(microserviceManufacturing);
 
                 SendCommand();
                 SendReplication();
@@ -78,23 +76,23 @@ namespace Microservices
                 Id = Guid.NewGuid().ToString(),
                 Owner = microserviceManufacturing,
                 Type = MessageType.Replication,
-                Destination = _settings.Name,
+                Destination = _contract.Name,
                 Operation = nameof(CarEndManufacturing),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(replication)
             };
 
-            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_contract.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Name }
+                { header, _contract.Name }
             };
 
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(exchange, _contract.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Content.Id}");
         }
@@ -121,23 +119,23 @@ namespace Microservices
                 Id = Guid.NewGuid().ToString(),
                 Owner = "simulator",
                 Type = MessageType.Command,
-                Destination = _settings.Name,
+                Destination = _contract.Name,
                 Operation = nameof(Sell),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(sale)
             };
 
-            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_contract.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Name }
+                { header, _contract.Name }
             };
 
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(exchange, _contract.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Message Sale: {message.Id}");
         }
@@ -159,23 +157,23 @@ namespace Microservices
                 Id = Guid.NewGuid().ToString(),
                 Owner = name,
                 Type = MessageType.Subscription,
-                Destination = _settings.Name,
+                Destination = _contract.Name,
                 Operation = nameof(Sell),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(subscription)
             };
 
-            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_contract.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Name }
+                { header, _contract.Name }
             };
 
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, _settings.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(exchange, _contract.Name, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Subscription from {name}: {subscription.Id}");
         }

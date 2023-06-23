@@ -12,8 +12,8 @@ namespace Packages.Commands
 
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
-
-        private readonly ISettings _settings;
+        
+        private readonly Settings _settings;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -31,9 +31,10 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(ISettings settings, IList<Subscription> subscriptions)
+        public Broker(Settings settings, IList<Subscription> subscriptions)
         {
             _settings = settings;
+
             _subscriptions = subscriptions;
 
             CreateErrorsChannel();
@@ -49,13 +50,13 @@ namespace Packages.Commands
             _subscriptions.Clear();
             _subscriptions = new List<Subscription>(subscriptions);
 
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
 
             foreach (var subscription in _subscriptions)
             {
                 _channelReplication.QueueBindNoWait(subscription.Subscriber,
                                                     exchange,
-                                                    _settings.Name,
+                                                    _settings.Contract.Name,
                                                     arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
             }
         }
@@ -91,7 +92,7 @@ namespace Packages.Commands
             _channelReplication = _connectionFactoryReplication.CreateConnection()
                                                                .CreateModel();
 
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
 
             _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
 
@@ -111,15 +112,15 @@ namespace Packages.Commands
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                               .CreateModel();
 
-            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_settings.Contract.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Name }
+                { header, _settings.Contract.Name }
             };
 
             _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
-            _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
-            _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: headers);
+            _channelEntry.QueueDeclareNoWait(_settings.Contract.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelEntry.QueueBindNoWait(_settings.Contract.Name, exchange, _settings.Contract.Name, arguments: headers);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
@@ -131,7 +132,7 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_settings.Contract.Name, false, _eventingBasicConsumerEntry);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
@@ -146,7 +147,7 @@ namespace Packages.Commands
 
         internal void Replicate(Message message)
         {
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, message.Destination }

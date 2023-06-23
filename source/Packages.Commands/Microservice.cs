@@ -7,8 +7,8 @@
         public static Operator<TContext> Operator =>
             _operator ??= new Operator<TContext>();
 
-        public static Operator<TContext> Configure(ISettings settings) =>
-            Operator.Configure(settings);
+        public static Operator<TContext> Configure(IContract contract) =>
+            Operator.Configure(contract);
 
         public static Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext> =>
             Operator.Execute<TCommand>();
