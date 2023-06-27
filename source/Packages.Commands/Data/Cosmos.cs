@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Extensions.Options;
 using System.Linq.Expressions;
 
 namespace Packages.Commands
@@ -9,20 +10,18 @@ namespace Packages.Commands
         private readonly string Name;
         string IRepository.Name => Name;
 
-        private readonly string PrimaryKey;
-        private readonly string EndPoint;
+        private readonly IOptions<Options> _options;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(Settings settings)
+        internal Cosmos(IOptions<Options> options)
         {
-            Name = settings.CosmosSettings.Database;
-            PrimaryKey = settings.CosmosSettings.PrimaryKey;
-            EndPoint = settings.CosmosSettings.EndPoint;
+            _options = options;
+            Name = _options.Value.Name;
 
-            CosmosClient = new CosmosClient(EndPoint, PrimaryKey, GetOptions());
+            CosmosClient = new CosmosClient(Name, _options.Value.CosmosPrimaryKey, GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();

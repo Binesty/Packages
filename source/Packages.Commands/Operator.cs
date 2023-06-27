@@ -1,26 +1,27 @@
 ﻿using System.Dynamic;
 using System.Text.Json;
 using System.Linq.Expressions;
+using Azure.Identity;
+using Microsoft.Extensions.Options;
 
 namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private IContract _contract = null!;
-        private Settings _settings = null!; 
-        private Broker? _broker;
-        private IRepository _repository = null!;
+        private readonly Rabbit _broker;
+        private readonly IRepository _repository = null!;
+        private readonly IOptions<Options> _options;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
-        internal Operator<TContext> Configure(IContract contract)
+        public Operator(IOptions<Options> options)
         {
-            _contract = contract;
-            _settings = new(_contract);
-            _repository = new Cosmos<TContext>(_settings);
+            _options = options;
+            _repository = new Cosmos<TContext>(_options);
+            _broker = new(_options, Subscriptions);
 
-            return this;
+            _broker.MessageReceived += MessageReceived;
         }
 
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
@@ -44,9 +45,6 @@ namespace Packages.Commands
         public async Task<Operator<TContext>> Start()
         {
             Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
-
-            _broker = new(_settings, Subscriptions);
-            _broker.MessageReceived += MessageReceived;
 
             return this;
         }
@@ -166,7 +164,7 @@ namespace Packages.Commands
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Owner = _contract.Name,
+                    Owner = _options.Value.Name,
                     Type = MessageType.Replication,
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),

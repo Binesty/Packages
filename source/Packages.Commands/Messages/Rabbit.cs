@@ -1,11 +1,12 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
 namespace Packages.Commands
 {
-    internal class Broker
+    internal class Rabbit
     {
         private const string header = "microservice";
         private const string errors = "errors";
@@ -13,7 +14,7 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
         
-        private readonly Settings _settings;
+        private readonly IOptions<Options> _options;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -31,9 +32,9 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(Settings settings, IList<Subscription> subscriptions)
+        public Rabbit(IOptions<Options> options, IList<Subscription> subscriptions)
         {
-            _settings = settings;
+            _options = options;
 
             _subscriptions = subscriptions;
 
@@ -50,13 +51,13 @@ namespace Packages.Commands
             _subscriptions.Clear();
             _subscriptions = new List<Subscription>(subscriptions);
 
-            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
 
             foreach (var subscription in _subscriptions)
             {
                 _channelReplication.QueueBindNoWait(subscription.Subscriber,
                                                     exchange,
-                                                    _settings.Contract.Name,
+                                                    _options.Value.Name,
                                                     arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
             }
         }
@@ -65,10 +66,10 @@ namespace Packages.Commands
         {
             _connectionFactoryErrors = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _options.Value.RabbitHost,
+                UserName = _options.Value.RabbitUser,
+                Password = _options.Value.RabbitPassword,
+                Port = _options.Value.RabbitPort
             };
 
             _channelErrors = _connectionFactoryErrors.CreateConnection()
@@ -83,16 +84,16 @@ namespace Packages.Commands
         {
             _connectionFactoryReplication = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _options.Value.RabbitHost,
+                UserName = _options.Value.RabbitUser,
+                Password = _options.Value.RabbitPassword,
+                Port = _options.Value.RabbitPort
             };
 
             _channelReplication = _connectionFactoryReplication.CreateConnection()
                                                                .CreateModel();
 
-            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
 
             _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
 
@@ -103,24 +104,24 @@ namespace Packages.Commands
         {
             _connectionFactoryEntry = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _options.Value.RabbitHost,
+                UserName = _options.Value.RabbitUser,
+                Password = _options.Value.RabbitPassword,
+                Port = _options.Value.RabbitPort
             };
 
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                               .CreateModel();
 
-            string exchange = $"{_settings.Contract.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_options.Value.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Contract.Name }
+                { header, _options.Value.Name }
             };
 
             _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
-            _channelEntry.QueueDeclareNoWait(_settings.Contract.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
-            _channelEntry.QueueBindNoWait(_settings.Contract.Name, exchange, _settings.Contract.Name, arguments: headers);
+            _channelEntry.QueueDeclareNoWait(_options.Value.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelEntry.QueueBindNoWait(_options.Value.Name, exchange, _options.Value.Name, arguments: headers);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
@@ -132,7 +133,7 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(_settings.Contract.Name, false, _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_options.Value.Name, false, _eventingBasicConsumerEntry);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
@@ -147,7 +148,7 @@ namespace Packages.Commands
 
         internal void Replicate(Message message)
         {
-            string exchange = $"{_settings.Contract.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, message.Destination }
