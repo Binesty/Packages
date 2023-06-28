@@ -9,6 +9,7 @@ namespace Packages.Commands
         public static OptionsBuilder<TOptions> ValidateFluently<TOptions>(this OptionsBuilder<TOptions> optionsBuilder)
             where TOptions : class
         {
+            optionsBuilder.Services.AddValidatorsFromAssemblyContaining<Options>(ServiceLifetime.Singleton);
             optionsBuilder.Services.AddSingleton<IValidateOptions<TOptions>>(provider =>
                        {
                            var validator = provider.GetRequiredService<IValidator<TOptions>>();
