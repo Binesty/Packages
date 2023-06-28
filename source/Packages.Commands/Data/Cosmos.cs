@@ -10,18 +10,19 @@ namespace Packages.Commands
         private readonly string Name;
         string IRepository.Name => Name;
 
-        private readonly IOptions<Options> _options;
+        private readonly IOptions<CommandsOptions> _options;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(IOptions<Options> options)
+        internal Cosmos(IOptions<CommandsOptions> options)
         {
             _options = options;
+
             Name = _options.Value.Name;
 
-            CosmosClient = new CosmosClient(Name, _options.Value.CosmosPrimaryKey, GetOptions());
+            CosmosClient = new CosmosClient(_options.Value.CosmosEndPoint, _options.Value.CosmosPrimaryKey, GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();

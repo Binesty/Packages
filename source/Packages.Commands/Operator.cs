@@ -9,12 +9,13 @@ namespace Packages.Commands
     {
         private readonly Rabbit _broker;
         private readonly IRepository _repository = null!;
-        private readonly IOptions<Options> _options;
+        private readonly IOptions<CommandsOptions> _options = null!;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
+        private bool started = false;
 
-        public Operator(IOptions<Options> options)
+        public Operator(IOptions<CommandsOptions> options)
         {
             _options = options;
             _repository = new Cosmos<TContext>(_options);
@@ -43,7 +44,11 @@ namespace Packages.Commands
 
         public async Task<Operator<TContext>> Start()
         {
+            if (started)
+                return this;
+
             Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+            started = true;
 
             return this;
         }

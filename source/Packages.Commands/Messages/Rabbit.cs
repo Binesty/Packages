@@ -14,7 +14,7 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
-        private readonly IOptions<Options> _options;
+        private readonly IOptions<CommandsOptions> _options;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -32,7 +32,7 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Rabbit(IOptions<Options> options, IList<Subscription> subscriptions)
+        public Rabbit(IOptions<CommandsOptions> options, IList<Subscription> subscriptions)
         {
             _options = options;
 

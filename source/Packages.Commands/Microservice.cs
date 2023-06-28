@@ -6,7 +6,7 @@ namespace Packages.Commands
     {
         private static Operator<TContext> _operator = null!;
 
-        public static Operator<TContext> Configure(IOptions<Options> options)
+        public static Operator<TContext> Configure(IOptions<CommandsOptions> options)
         {
             _operator = new Operator<TContext>(options);
             return _operator;
