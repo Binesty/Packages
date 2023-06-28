@@ -1,11 +1,12 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
 namespace Packages.Commands
 {
-    internal class Broker
+    internal class Rabbit
     {
         private const string header = "microservice";
         private const string errors = "errors";
@@ -13,7 +14,7 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
-        private readonly ISettings _settings;
+        private readonly IOptions<Settings> _settings;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -31,7 +32,7 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(ISettings settings, IList<Subscription> subscriptions)
+        public Rabbit(IOptions<Settings> settings, IList<Subscription> subscriptions)
         {
             _settings = settings;
             _subscriptions = subscriptions;
@@ -49,13 +50,13 @@ namespace Packages.Commands
             _subscriptions.Clear();
             _subscriptions = new List<Subscription>(subscriptions);
 
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
 
             foreach (var subscription in _subscriptions)
             {
                 _channelReplication.QueueBindNoWait(subscription.Subscriber,
                                                     exchange,
-                                                    _settings.Name,
+                                                    _settings.Value.Name,
                                                     arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
             }
         }
@@ -64,10 +65,10 @@ namespace Packages.Commands
         {
             _connectionFactoryErrors = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelErrors = _connectionFactoryErrors.CreateConnection()
@@ -82,16 +83,16 @@ namespace Packages.Commands
         {
             _connectionFactoryReplication = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelReplication = _connectionFactoryReplication.CreateConnection()
                                                                .CreateModel();
 
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
 
             _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
 
@@ -102,24 +103,24 @@ namespace Packages.Commands
         {
             _connectionFactoryEntry = new()
             {
-                HostName = _settings.BrokerSettings.Host,
-                UserName = _settings.BrokerSettings.User,
-                Password = _settings.BrokerSettings.Password,
-                Port = _settings.BrokerSettings.Port
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                               .CreateModel();
 
-            string exchange = $"{_settings.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Name }
+                { header, _settings.Value.Name }
             };
 
             _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
-            _channelEntry.QueueDeclareNoWait(_settings.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
-            _channelEntry.QueueBindNoWait(_settings.Name, exchange, _settings.Name, arguments: headers);
+            _channelEntry.QueueDeclareNoWait(_settings.Value.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelEntry.QueueBindNoWait(_settings.Value.Name, exchange, _settings.Value.Name, arguments: headers);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
@@ -131,7 +132,7 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(_settings.Name, false, _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_settings.Value.Name, false, _eventingBasicConsumerEntry);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
@@ -146,7 +147,7 @@ namespace Packages.Commands
 
         internal void Replicate(Message message)
         {
-            string exchange = $"{_settings.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, message.Destination }

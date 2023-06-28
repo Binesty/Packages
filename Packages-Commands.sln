@@ -5,10 +5,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Packages.Commands", "source\Packages.Commands\Packages.Commands.csproj", "{52DD57BE-4345-46CA-903C-D7AC6F92C97D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{0B8A541B-02A0-4260-A6D6-10B956B302EA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microservices", "source\Utilities\Microservices\Microservices.csproj", "{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C-CF93-40C8-9023-D27153E8CA44}"
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
@@ -18,6 +14,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C
 		nuget.config = nuget.config
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipelines", "Pipelines", "{798EFC4C-92AF-4EDD-A234-DE1D3449DE77}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\preview.yml = .github\workflows\preview.yml
+		.github\workflows\release.yml = .github\workflows\release.yml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice", "source\Microservice\Microservice.csproj", "{C91CF21E-6132-4B02-B5BA-F943DF139B3E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,16 +34,13 @@ Global
 		{52DD57BE-4345-46CA-903C-D7AC6F92C97D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52DD57BE-4345-46CA-903C-D7AC6F92C97D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52DD57BE-4345-46CA-903C-D7AC6F92C97D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{66BE5D45-FAE3-4488-BB28-A41AE8F10F00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C91CF21E-6132-4B02-B5BA-F943DF139B3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C91CF21E-6132-4B02-B5BA-F943DF139B3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C91CF21E-6132-4B02-B5BA-F943DF139B3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C91CF21E-6132-4B02-B5BA-F943DF139B3E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{66BE5D45-FAE3-4488-BB28-A41AE8F10F00} = {0B8A541B-02A0-4260-A6D6-10B956B302EA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {948F39B9-4703-445C-805E-B9A40D784A42}

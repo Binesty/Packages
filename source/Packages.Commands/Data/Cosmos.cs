@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Extensions.Options;
 using System.Linq.Expressions;
 
 namespace Packages.Commands
@@ -9,20 +10,19 @@ namespace Packages.Commands
         private readonly string Name;
         string IRepository.Name => Name;
 
-        private readonly string PrimaryKey;
-        private readonly string EndPoint;
+        private readonly IOptions<Settings> _settings;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(ISettings settings)
+        internal Cosmos(IOptions<Settings> settings)
         {
-            Name = settings.CosmosSettings.Database;
-            PrimaryKey = settings.CosmosSettings.PrimaryKey;
-            EndPoint = settings.CosmosSettings.EndPoint;
+            _settings = settings;
 
-            CosmosClient = new CosmosClient(EndPoint, PrimaryKey, GetOptions());
+            Name = _settings.Value.Name;
+
+            CosmosClient = new CosmosClient(_settings.Value.CosmosEndPoint, _settings.Value.CosmosPrimaryKey, GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();
@@ -106,7 +106,7 @@ namespace Packages.Commands
             return default;
         }
 
-        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, int units)
+        async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, Expression<Func<TStorable, bool>>? optionalExpression, int units)
         {
             var container = GetContainer(storableType);
             if (container is null)
@@ -115,6 +115,8 @@ namespace Packages.Commands
             var items = new List<TStorable>();
 
             var queryable = container.GetItemLinqQueryable<TStorable>(true).Where(expression);
+
+            queryable = optionalExpression is not null ? queryable.Where(optionalExpression) : queryable;
             queryable = (units > 0) ? queryable.Take(units) : queryable;
 
             using FeedIterator<TStorable> feedIterator = queryable.ToFeedIterator();

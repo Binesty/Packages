@@ -8,6 +8,6 @@ namespace Packages.Commands
 
         internal Task<IStorable?> Save<TStorable>(IStorable storable) where TStorable : IStorable;
 
-        internal Task<IEnumerable<TStorable>> Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, int units = 0) where TStorable : IStorable;
+        internal Task<IEnumerable<TStorable>> Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, Expression<Func<TStorable, bool>>? optionalExpression = null, int units = 0) where TStorable : IStorable;
     }
 }

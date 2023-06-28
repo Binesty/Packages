@@ -1,23 +1,27 @@
-﻿using System.Dynamic;
+﻿using Microsoft.Extensions.Options;
+using System.Dynamic;
+using System.Linq.Expressions;
 using System.Text.Json;
 
 namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private ISettings _settings = null!;
-        private Broker? _broker;
-        private IRepository _repository = null!;
+        private readonly Rabbit _broker;
+        private readonly IRepository _repository = null!;
+        private readonly IOptions<Settings> _settings = null!;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
+        private bool started = false;
 
-        internal Operator<TContext> Configure(ISettings settings)
+        public Operator(IOptions<Settings> settings)
         {
             _settings = settings;
             _repository = new Cosmos<TContext>(_settings);
+            _broker = new(_settings, Subscriptions);
 
-            return this;
+            _broker.MessageReceived += MessageReceived;
         }
 
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
@@ -40,10 +44,11 @@ namespace Packages.Commands
 
         public async Task<Operator<TContext>> Start()
         {
-            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+            if (started)
+                return this;
 
-            _broker = new(_settings, Subscriptions);
-            _broker.MessageReceived += MessageReceived;
+            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
+            started = true;
 
             return this;
         }
@@ -86,7 +91,10 @@ namespace Packages.Commands
             if (replicate is null)
                 return false;
 
-            var contexts = await _repository.Fetch(((IReplicable<TContext>)replicate).InContexts(replication), StorableType.Contexts);
+            var queryImplemented = ((IReplicable<TContext>)replicate).InContexts(replication);
+            Expression<Func<TContext, bool>> queryFilterReplicationId = context => context.LastReplicationId != replication.Id;
+
+            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, queryFilterReplicationId);
 
             Parallel.ForEach(contexts, async context =>
             {
@@ -98,6 +106,8 @@ namespace Packages.Commands
                     return;
 
                 context.StorableStatus = StorableStatus.Changed;
+                context.LastReplicationId = replication.Id;
+
                 await _repository.Save<TContext>(change);
 
                 SendReplications(change);
@@ -158,7 +168,7 @@ namespace Packages.Commands
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Owner = _settings.Name,
+                    Owner = _settings.Value.Name,
                     Type = MessageType.Replication,
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),

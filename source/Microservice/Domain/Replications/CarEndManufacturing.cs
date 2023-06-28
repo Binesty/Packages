@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 
-namespace Microservices.Replications
+namespace Microservice.Domain.Replications
 {
     public class CarEndManufacturing : IReplicable<Sale>
     {

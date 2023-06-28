@@ -15,5 +15,7 @@
         public StorableStatus StorableStatus { get; set; }
 
         StorableType IStorable.StorableType { get; set; } = StorableType.Contexts;
+
+        public string? LastReplicationId { get; set; }
     }
 }
