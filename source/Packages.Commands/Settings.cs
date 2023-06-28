@@ -1,8 +1,8 @@
 ﻿namespace Packages.Commands
 {
-    public class CommandsOptions
+    public class Settings
     {
-        public const string SectionName = "CommandsOptions";
+        public const string SectionName = "Settings";
 
         public string Name { get; init; } = string.Empty;
         public string Description { get; init; } = string.Empty;

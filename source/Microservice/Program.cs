@@ -11,8 +11,8 @@ namespace Microservice
                              {
                                 services.AddHostedService<Worker>();
 
-                                services.AddOptions<CommandsOptions>()
-                                        .BindConfiguration(CommandsOptions.SectionName)
+                                services.AddOptions<Settings>()
+                                        .BindConfiguration(Settings.SectionName)
                                         .ValidateFluently()
                                         .ValidateOnStart();
                              })

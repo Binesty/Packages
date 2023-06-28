@@ -9,17 +9,17 @@ namespace Packages.Commands
     {
         private readonly Rabbit _broker;
         private readonly IRepository _repository = null!;
-        private readonly IOptions<CommandsOptions> _options = null!;
+        private readonly IOptions<Settings> _settings = null!;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
         private bool started = false;
 
-        public Operator(IOptions<CommandsOptions> options)
+        public Operator(IOptions<Settings> settings)
         {
-            _options = options;
-            _repository = new Cosmos<TContext>(_options);
-            _broker = new(_options, Subscriptions);
+            _settings = settings;
+            _repository = new Cosmos<TContext>(_settings);
+            _broker = new(_settings, Subscriptions);
 
             _broker.MessageReceived += MessageReceived;
         }
@@ -168,7 +168,7 @@ namespace Packages.Commands
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Owner = _options.Value.Name,
+                    Owner = _settings.Value.Name,
                     Type = MessageType.Replication,
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),

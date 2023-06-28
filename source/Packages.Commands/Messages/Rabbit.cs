@@ -14,7 +14,7 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
-        private readonly IOptions<CommandsOptions> _options;
+        private readonly IOptions<Settings> _settings;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -32,10 +32,9 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Rabbit(IOptions<CommandsOptions> options, IList<Subscription> subscriptions)
+        public Rabbit(IOptions<Settings> settings, IList<Subscription> subscriptions)
         {
-            _options = options;
-
+            _settings = settings;
             _subscriptions = subscriptions;
 
             CreateErrorsChannel();
@@ -51,13 +50,13 @@ namespace Packages.Commands
             _subscriptions.Clear();
             _subscriptions = new List<Subscription>(subscriptions);
 
-            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
 
             foreach (var subscription in _subscriptions)
             {
                 _channelReplication.QueueBindNoWait(subscription.Subscriber,
                                                     exchange,
-                                                    _options.Value.Name,
+                                                    _settings.Value.Name,
                                                     arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
             }
         }
@@ -66,10 +65,10 @@ namespace Packages.Commands
         {
             _connectionFactoryErrors = new()
             {
-                HostName = _options.Value.RabbitHost,
-                UserName = _options.Value.RabbitUser,
-                Password = _options.Value.RabbitPassword,
-                Port = _options.Value.RabbitPort
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelErrors = _connectionFactoryErrors.CreateConnection()
@@ -84,16 +83,16 @@ namespace Packages.Commands
         {
             _connectionFactoryReplication = new()
             {
-                HostName = _options.Value.RabbitHost,
-                UserName = _options.Value.RabbitUser,
-                Password = _options.Value.RabbitPassword,
-                Port = _options.Value.RabbitPort
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelReplication = _connectionFactoryReplication.CreateConnection()
                                                                .CreateModel();
 
-            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
 
             _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
 
@@ -104,24 +103,24 @@ namespace Packages.Commands
         {
             _connectionFactoryEntry = new()
             {
-                HostName = _options.Value.RabbitHost,
-                UserName = _options.Value.RabbitUser,
-                Password = _options.Value.RabbitPassword,
-                Port = _options.Value.RabbitPort
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                               .CreateModel();
 
-            string exchange = $"{_options.Value.Name}-{exchangeEntryPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, _options.Value.Name }
+                { header, _settings.Value.Name }
             };
 
             _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
-            _channelEntry.QueueDeclareNoWait(_options.Value.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
-            _channelEntry.QueueBindNoWait(_options.Value.Name, exchange, _options.Value.Name, arguments: headers);
+            _channelEntry.QueueDeclareNoWait(_settings.Value.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
+            _channelEntry.QueueBindNoWait(_settings.Value.Name, exchange, _settings.Value.Name, arguments: headers);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
             _eventingBasicConsumerEntry.Received += (model, content) =>
@@ -133,7 +132,7 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(_options.Value.Name, false, _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_settings.Value.Name, false, _eventingBasicConsumerEntry);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
@@ -148,7 +147,7 @@ namespace Packages.Commands
 
         internal void Replicate(Message message)
         {
-            string exchange = $"{_options.Value.Name}-{exchangeReplicationPrefix}";
+            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>
             {
                 { header, message.Destination }

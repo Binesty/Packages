@@ -2,9 +2,9 @@
 
 namespace Packages.Commands
 {
-    public class CommandsOptionsValidator : AbstractValidator<CommandsOptions>
+    public class SettingsValidator : AbstractValidator<Settings>
     {
-        public CommandsOptionsValidator()
+        public SettingsValidator()
         {
             RuleFor(options => options.Name)
                    .NotEmpty();

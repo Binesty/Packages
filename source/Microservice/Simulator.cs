@@ -21,7 +21,7 @@ namespace Microservice
         private static IModel _channel = null!;
         private static bool executed = false;
 
-        public static async Task Start(IOptions<CommandsOptions> _options)
+        public static async Task Start(IOptions<Settings> _settings)
         {
             if (executed)
                 return;
@@ -30,10 +30,10 @@ namespace Microservice
 
             _connectionFactory = new()
             {
-                HostName = _options.Value.RabbitHost,
-                UserName = _options.Value.RabbitUser,
-                Password = _options.Value.RabbitPassword,
-                Port = _options.Value.RabbitPort
+                HostName = _settings.Value.RabbitHost,
+                UserName = _settings.Value.RabbitUser,
+                Password = _settings.Value.RabbitPassword,
+                Port = _settings.Value.RabbitPort
             };
 
             _channel = _connectionFactory.CreateConnection()

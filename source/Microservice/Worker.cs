@@ -9,12 +9,12 @@ namespace Microservice
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly IOptions<CommandsOptions> _options; 
+        private readonly IOptions<Settings> _settings; 
 
-        public Worker(ILogger<Worker> logger, IOptions<CommandsOptions> options)
+        public Worker(ILogger<Worker> logger, IOptions<Settings> settings)
         {
             _logger = logger;
-            _options = options;
+            _settings = settings;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,13 +23,13 @@ namespace Microservice
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Microservice<Sale>.Configure(_options)
+                await Microservice<Sale>.Configure(_settings)
                                         .Execute<Sell>()
                                         .Apply<CarEndManufacturing>()
                                         .Start();
 
                 await Task.Delay(5000, stoppingToken);
-                await Task.Run(() => Simulator.Start(_options), stoppingToken);
+                await Task.Run(() => Simulator.Start(_settings), stoppingToken);
             }
         }
     }

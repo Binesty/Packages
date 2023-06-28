@@ -9,7 +9,7 @@ namespace Packages.Commands
         public static OptionsBuilder<TOptions> ValidateFluently<TOptions>(this OptionsBuilder<TOptions> optionsBuilder)
             where TOptions : class
         {
-            optionsBuilder.Services.AddValidatorsFromAssemblyContaining<CommandsOptions>(ServiceLifetime.Singleton);
+            optionsBuilder.Services.AddValidatorsFromAssemblyContaining<Settings>(ServiceLifetime.Singleton);
             optionsBuilder.Services.AddSingleton<IValidateOptions<TOptions>>(provider =>
                        {
                            var validator = provider.GetRequiredService<IValidator<TOptions>>();
@@ -48,7 +48,7 @@ namespace Packages.Commands
             }
 
             var errors = validateResult.Errors.Select(error =>
-                $"{nameof(CommandsOptions)} validation failed :'{error.PropertyName}' with error: '{error.ErrorMessage}'");
+                $"Configuration error on {Settings.SectionName} validation failed :'{error.PropertyName}' with error: '{error.ErrorMessage}'");
 
             return ValidateOptionsResult.Fail(errors);
         }
