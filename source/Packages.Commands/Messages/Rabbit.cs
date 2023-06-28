@@ -13,7 +13,7 @@ namespace Packages.Commands
 
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
-        
+
         private readonly IOptions<Options> _options;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 

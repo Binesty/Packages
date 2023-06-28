@@ -5,7 +5,7 @@ namespace Packages.Commands
     public static class Microservice<TContext> where TContext : Context
     {
         private static Operator<TContext> _operator = null!;
-        
+
         public static Operator<TContext> Configure(IOptions<Options> options)
         {
             _operator = new Operator<TContext>(options);

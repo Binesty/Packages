@@ -1,8 +1,7 @@
-﻿using System.Dynamic;
-using System.Text.Json;
+﻿using Microsoft.Extensions.Options;
+using System.Dynamic;
 using System.Linq.Expressions;
-using Azure.Identity;
-using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Packages.Commands
 {

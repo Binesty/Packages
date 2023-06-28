@@ -4,15 +4,15 @@
     {
         public const string SectionName = "Options";
 
-        public required string Name { get; init; }
-        public required string Description { get; init; }
-        
-        public required string CosmosPrimaryKey { get; init; }
-        public required string CosmosEndPoint { get; init; }
+        public string Name { get; init; }
+        public string Description { get; init; }
 
-        public required string RabbitHost { get; init; }
-        public required string RabbitUser { get; init; }
-        public required string RabbitPassword { get; init; }
-        public required int RabbitPort { get; init; }
+        public string CosmosPrimaryKey { get; init; }
+        public string CosmosEndPoint { get; init; }
+
+        public string RabbitHost { get; init; }
+        public string RabbitUser { get; init; }
+        public string RabbitPassword { get; init; }
+        public int RabbitPort { get; init; }
     }
 }

@@ -1,4 +1,5 @@
 using Packages.Commands;
+using Packages.Commands.Extensions;
 
 namespace Microservice
 {
@@ -7,13 +8,15 @@ namespace Microservice
         public static void Main(string[] args)
         {
             IHost host = Host.CreateDefaultBuilder(args)
-                .ConfigureServices(services =>
+                .ConfigureServices((builder, services) =>
                 {
                     services.AddHostedService<Worker>();
 
-                    services.AddOptions<Options>()
-                            .BindConfiguration(Options.SectionName);
-                        
+                    services.AddMicroserviceCommands(builder)
+                            .AddOptions<Options>()
+                            .BindConfiguration(Options.SectionName)
+                            .ValidateFluently()
+                            .ValidateOnStart();
                 })
                 .Build();
 

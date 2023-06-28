@@ -1,6 +1,4 @@
-﻿using System.Security.Policy;
-
-namespace Packages.Commands
+﻿namespace Packages.Commands
 {
     public abstract class Context : IStorable
     {
