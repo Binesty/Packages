@@ -2,9 +2,7 @@
 {
     public abstract class Context : IStorable
     {
-        public abstract string Name { get; }
-
-        public abstract string Description { get; }
+        public string Name { get; } = string.Empty;
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
@@ -17,5 +15,6 @@
         StorableType IStorable.StorableType { get; set; } = StorableType.Contexts;
 
         public string? LastReplicationId { get; set; }
+        
     }
 }

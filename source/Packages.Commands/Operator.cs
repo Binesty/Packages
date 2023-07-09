@@ -10,6 +10,7 @@ namespace Packages.Commands
         private readonly Rabbit _broker;
         private readonly IRepository _repository = null!;
         private readonly IOptions<Settings> _settings = null!;
+        private readonly Secrets _secrets = null!;
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
@@ -18,8 +19,10 @@ namespace Packages.Commands
         public Operator(IOptions<Settings> settings)
         {
             _settings = settings;
-            _repository = new Cosmos<TContext>(_settings);
-            _broker = new(_settings, Subscriptions);
+            _secrets = Secrets.Load(_settings);
+
+            _repository = new Cosmos<TContext>(_settings, _secrets);
+            _broker = new(_settings, _secrets, Subscriptions);
 
             _broker.MessageReceived += MessageReceived;
         }
@@ -149,6 +152,15 @@ namespace Packages.Commands
             var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
             if (subscription == null || !Subscription.Validade(subscription))
                 return false;
+
+            var exists = await _repository.Fetch<Subscription>(x => x.Subscriber == subscription.Subscriber, StorableType.Subscriptions);
+            if (exists.Any())
+            {   
+                Parallel.ForEach(exists, async exist =>
+                {
+                    await _repository.Save<Subscription>(exist.MarkDeleted());
+                });
+            }
 
             await _repository.Save<Subscription>(subscription);
 

@@ -11,18 +11,20 @@ namespace Packages.Commands
         string IRepository.Name => Name;
 
         private readonly IOptions<Settings> _settings;
+        private readonly Secrets _secrets;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(IOptions<Settings> settings)
+        internal Cosmos(IOptions<Settings> settings, Secrets secrets)
         {
             _settings = settings;
+            _secrets = secrets;
 
             Name = _settings.Value.Name;
 
-            CosmosClient = new CosmosClient(_settings.Value.CosmosEndPoint, _settings.Value.CosmosPrimaryKey, GetOptions());
+            CosmosClient = new CosmosClient(_secrets.CosmosEndPoint, _secrets.CosmosPrimaryKey, GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();
