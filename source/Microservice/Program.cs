@@ -9,12 +9,12 @@ namespace Microservice
             IHost host = Host.CreateDefaultBuilder(args)
                              .ConfigureServices((builder, services) =>
                              {
-                                services.AddHostedService<Worker>();
+                                 services.AddHostedService<Worker>();
 
-                                services.AddOptions<Settings>()
-                                        .BindConfiguration(Settings.SectionName)
-                                        .ValidateFluently()
-                                        .ValidateOnStart();
+                                 services.AddOptions<Settings>()
+                                         .BindConfiguration(Settings.SectionName)
+                                         .ValidateFluently()
+                                         .ValidateOnStart();
                              })
                             .Build();
 

@@ -35,5 +35,11 @@
 
             return true;
         }
+
+        public Subscription MarkDeleted()
+        {
+            StorableStatus = StorableStatus.Deleted;
+            return this;
+        }
     }
 }

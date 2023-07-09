@@ -26,14 +26,17 @@ namespace Microservice
             if (executed)
                 return;
 
+            Console.WriteLine($"Get Secrets...");
+            var secrets = Secrets.Load(_settings);
+
             Console.WriteLine($"Simulator to send messages to: {microservice}");
 
             _connectionFactory = new()
             {
-                HostName = _settings.Value.RabbitHost,
-                UserName = _settings.Value.RabbitUser,
-                Password = _settings.Value.RabbitPassword,
-                Port = _settings.Value.RabbitPort
+                HostName = secrets.RabbitHost,
+                UserName = secrets.RabbitUser,
+                Password = secrets.RabbitPassword,
+                Port = secrets.RabbitPort
             };
 
             _channel = _connectionFactory.CreateConnection()
@@ -44,22 +47,18 @@ namespace Microservice
 
             var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
 
+            SendSubscription(microserviceCommunication);
+            SendSubscription(microserviceManufacturing);
+
             int count = 0;
             while (await periodicTime.WaitForNextTickAsync())
             {
-                if (count == 1)
-                    break;
-
-                if (count == 0)
-                    SendSubscription(microserviceCommunication);
-
-                if (count == 0)
-                    SendSubscription(microserviceManufacturing);
-
                 SendCommand();
                 SendReplication();
 
                 count++;
+                if (count == 1)
+                    break;
             }
 
             executed = true;

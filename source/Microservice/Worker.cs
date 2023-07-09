@@ -9,7 +9,7 @@ namespace Microservice
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly IOptions<Settings> _settings; 
+        private readonly IOptions<Settings> _settings;
 
         public Worker(ILogger<Worker> logger, IOptions<Settings> settings)
         {

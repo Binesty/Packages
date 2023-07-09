@@ -15,6 +15,7 @@ namespace Packages.Commands
         private const string exchangeReplicationPrefix = "replications";
 
         private readonly IOptions<Settings> _settings;
+        private readonly Secrets _secrets;
         private IList<Subscription> _subscriptions = new List<Subscription>();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -32,9 +33,10 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Rabbit(IOptions<Settings> settings, IList<Subscription> subscriptions)
+        public Rabbit(IOptions<Settings> settings, Secrets secrets, IList<Subscription> subscriptions)
         {
             _settings = settings;
+            _secrets = secrets;
             _subscriptions = subscriptions;
 
             CreateErrorsChannel();
@@ -65,10 +67,10 @@ namespace Packages.Commands
         {
             _connectionFactoryErrors = new()
             {
-                HostName = _settings.Value.RabbitHost,
-                UserName = _settings.Value.RabbitUser,
-                Password = _settings.Value.RabbitPassword,
-                Port = _settings.Value.RabbitPort
+                HostName = _secrets.RabbitHost,
+                UserName = _secrets.RabbitUser,
+                Password = _secrets.RabbitPassword,
+                Port = _secrets.RabbitPort
             };
 
             _channelErrors = _connectionFactoryErrors.CreateConnection()
@@ -83,10 +85,10 @@ namespace Packages.Commands
         {
             _connectionFactoryReplication = new()
             {
-                HostName = _settings.Value.RabbitHost,
-                UserName = _settings.Value.RabbitUser,
-                Password = _settings.Value.RabbitPassword,
-                Port = _settings.Value.RabbitPort
+                HostName = _secrets.RabbitHost,
+                UserName = _secrets.RabbitUser,
+                Password = _secrets.RabbitPassword,
+                Port = _secrets.RabbitPort
             };
 
             _channelReplication = _connectionFactoryReplication.CreateConnection()
@@ -103,10 +105,10 @@ namespace Packages.Commands
         {
             _connectionFactoryEntry = new()
             {
-                HostName = _settings.Value.RabbitHost,
-                UserName = _settings.Value.RabbitUser,
-                Password = _settings.Value.RabbitPassword,
-                Port = _settings.Value.RabbitPort
+                HostName = _secrets.RabbitHost,
+                UserName = _secrets.RabbitUser,
+                Password = _secrets.RabbitPassword,
+                Port = _secrets.RabbitPort
             };
 
             _channelEntry = _connectionFactoryEntry.CreateConnection()
