@@ -8,7 +8,7 @@ namespace Packages.Commands
 
         public static Operator<TContext> Configure(IOptions<Settings> settings)
         {
-            _operator = new Operator<TContext>(settings);
+            _operator ??= new Operator<TContext>(settings);
             return _operator;
         }
 

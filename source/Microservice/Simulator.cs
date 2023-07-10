@@ -42,26 +42,26 @@ namespace Microservice
             _channel = _connectionFactory.CreateConnection()
                                          .CreateModel();
 
+
+            await Task.Run(() => Execute());
+        }
+
+        private static void Execute()
+        {
             CreateQueuesReplications();
-            Task.Delay(TimeSpan.FromSeconds(1)).Wait();
-
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
-
             SendSubscription(microserviceCommunication);
-            SendSubscription(microserviceManufacturing);
+            SendSubscription(microserviceManufacturing);            
 
-            int count = 0;
-            while (await periodicTime.WaitForNextTickAsync())
+            int total = 1000;
+            Parallel.For(1, total, count =>
             {
                 SendCommand();
-                SendReplication();
+            });
 
-                count++;
-                if (count == 1)
-                    break;
-            }
+            SendReplication();
 
             executed = true;
+            Console.ReadLine();
         }
 
         private static void SendReplication()
@@ -254,8 +254,7 @@ namespace Microservice
 
         public static List<Customer> Customers => new()
         {
-            new Customer("Steve", "Golth", 19),
-            new Customer("Clauber", "Soul", 17),
+            new Customer("Steve", "Golth", 19),            
             new Customer("Riber", "Cliff", 22),
             new Customer("Jonn", "Crow", 32),
             new Customer("Bianca", "Sibre", 40),

@@ -155,7 +155,7 @@ namespace Packages.Commands
 
             var exists = await _repository.Fetch<Subscription>(x => x.Subscriber == subscription.Subscriber, StorableType.Subscriptions);
             if (exists.Any())
-            {   
+            {
                 Parallel.ForEach(exists, async exist =>
                 {
                     await _repository.Save<Subscription>(exist.MarkDeleted());
