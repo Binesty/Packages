@@ -11,11 +11,5 @@ namespace Packages.Commands
             _operator ??= new Operator<TContext>(settings);
             return _operator;
         }
-
-        public static Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext> =>
-            _operator.Execute<TCommand>();
-
-        public static Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext> =>
-           _operator.Apply<TReplicable>();
     }
 }

@@ -7,7 +7,7 @@ namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private readonly Rabbit _broker;
+        private readonly Rabbit _broker;        
         private readonly IRepository _repository = null!;
         private readonly IOptions<Settings> _settings = null!;
         private readonly Secrets _secrets = null!;
@@ -16,15 +16,18 @@ namespace Packages.Commands
         private IList<Subscription> Subscriptions = new List<Subscription>();
         private bool started = false;
 
-        public Operator(IOptions<Settings> settings)
+        internal Operator(IOptions<Settings> settings)
         {
-            _settings = settings;
+            _settings = settings;            
             _secrets = Secrets.Load(_settings);
-
             _repository = new Cosmos<TContext>(_settings, _secrets);
-            _broker = new(_settings, _secrets, Subscriptions);
 
-            _broker.MessageReceived += MessageReceived;
+            Subscriptions = new List<Subscription>(_repository.Fetch<Subscription>(subscription => subscription.Active == true, StorableType.Subscriptions)
+                                                              .GetAwaiter()
+                                                              .GetResult());
+
+            _broker = new(_settings, _secrets, Subscriptions);
+            
         }
 
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
@@ -45,15 +48,19 @@ namespace Packages.Commands
             return this;
         }
 
-        public async Task<Operator<TContext>> Start()
+        public Task Start()
         {
-            if (started)
+            return 
+            Task.Run(() => 
+            {
+                if (started)
+                    return this;
+
+                started = true;
+
+                _broker.MessageReceived += MessageReceived;
                 return this;
-
-            Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
-            started = true;
-
-            return this;
+            });
         }
 
         private void MessageReceived(object? sender, MessageEventArgs argument)

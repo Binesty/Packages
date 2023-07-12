@@ -1,14 +1,14 @@
-{
+﻿{
     "profiles":
     {
-        "Microservice":
+        "Simulator":
         {
             "commandName": "Project",
+            "dotnetRunMessages": true,
             "environmentVariables":
             {
                 "DOTNET_ENVIRONMENT": "Development"
-            },
-            "dotnetRunMessages": true
+            }
         }
     }
 }

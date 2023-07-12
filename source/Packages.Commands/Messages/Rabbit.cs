@@ -9,8 +9,9 @@ namespace Packages.Commands
     internal class Rabbit
     {
         private const string header = "microservice";
-        private const string errors = "errors";
+        private const short requestedHeartbeatSeconds = 10;
 
+        private const string exchangeErrorPrefix = "errors";
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
@@ -42,14 +43,14 @@ namespace Packages.Commands
             CreateErrorsChannel();
             CreateReplicationChannel();
             CreateEntryChannel();
+            UpdateBindingSubscription(_subscriptions);
         }
 
         internal void UpdateBindingSubscription(IList<Subscription> subscriptions)
         {
             if (subscriptions.Count == 0)
                 return;
-
-            _subscriptions.Clear();
+            
             _subscriptions = new List<Subscription>(subscriptions);
 
             string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
@@ -70,15 +71,17 @@ namespace Packages.Commands
                 HostName = _secrets.RabbitHost,
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort
+                Port = _secrets.RabbitPort,
+                ClientProvidedName = $"{_settings.Value.Name}-{exchangeErrorPrefix}",
+                RequestedHeartbeat = TimeSpan.FromMicroseconds(requestedHeartbeatSeconds)
             };
 
             _channelErrors = _connectionFactoryErrors.CreateConnection()
                                                      .CreateModel();
-
-            _channelErrors.ExchangeDeclareNoWait(errors, ExchangeType.Direct, durable: true, autoDelete: false);
-            _channelErrors.QueueDeclareNoWait(errors, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            _channelErrors.QueueBindNoWait(errors, errors, string.Empty, arguments: null);
+                                                     
+            _channelErrors.ExchangeDeclareNoWait(exchangeErrorPrefix, ExchangeType.Direct, durable: true, autoDelete: false);
+            _channelErrors.QueueDeclareNoWait(exchangeErrorPrefix, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            _channelErrors.QueueBindNoWait(exchangeErrorPrefix, exchangeErrorPrefix, string.Empty, arguments: null);
         }
 
         private void CreateReplicationChannel()
@@ -88,7 +91,9 @@ namespace Packages.Commands
                 HostName = _secrets.RabbitHost,
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort
+                Port = _secrets.RabbitPort,
+                ClientProvidedName = $"{_settings.Value.Name}-{exchangeReplicationPrefix}",
+                RequestedHeartbeat = TimeSpan.FromMicroseconds(requestedHeartbeatSeconds)
             };
 
             _channelReplication = _connectionFactoryReplication.CreateConnection()
@@ -108,7 +113,9 @@ namespace Packages.Commands
                 HostName = _secrets.RabbitHost,
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort
+                Port = _secrets.RabbitPort,
+                ClientProvidedName = $"{_settings.Value.Name}-{exchangeEntryPrefix}",
+                RequestedHeartbeat = TimeSpan.FromMicroseconds(requestedHeartbeatSeconds)
             };
 
             _channelEntry = _connectionFactoryEntry.CreateConnection()
@@ -144,7 +151,7 @@ namespace Packages.Commands
 
         internal void PublishError(Message message)
         {
-            _channelEntry.BasicPublish(errors, errors, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
+            _channelEntry.BasicPublish(exchangeErrorPrefix, exchangeErrorPrefix, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         internal void Replicate(Message message)
