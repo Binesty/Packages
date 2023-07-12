@@ -1,4 +1,4 @@
-﻿using Microservice.Domain;
+using Microservice.Domain;
 using Microservice.Domain.Commands;
 using Microservice.Domain.Replications;
 using Microsoft.Extensions.Options;
@@ -7,64 +7,109 @@ using RabbitMQ.Client;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace Microservice
+namespace Simulator
 {
-    internal class Simulator
+    public class Worker : BackgroundService
     {
+        private const short requestedHeartbeatSeconds = 10;
         private const string microservice = "car-sale";
         private const string header = "microservice";
         private const string exchangeEntryPrefix = "entry";
         private const string microserviceManufacturing = "manufacturing";
         private const string microserviceCommunication = "communication";
 
-        private static ConnectionFactory _connectionFactory = null!;
-        private static IModel _channel = null!;
-        private static bool executed = false;
+        private ConnectionFactory _connectionFactory = null!;
+        private IModel _channel = null!;
+        private bool executed = false;
 
-        public static async Task Start(IOptions<Settings> _settings)
+        private readonly IOptions<Settings> _settings;
+        private readonly ILogger<Worker> _logger;
+
+        public Worker(ILogger<Worker> logger, IOptions<Settings> settings)
+        {
+            _logger = logger;
+            _settings = settings;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            Configure();  
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Run(() =>
+                {
+                    Console.Clear();
+                    _logger.LogInformation("Simulator start");
+
+                    DeleteQueues();
+                    
+
+                    _logger.LogInformation("Input total messages");
+                    var dataRead = Console.ReadLine();
+
+                    if (dataRead?.ToLower() == "e")
+                        return;
+
+                    if (dataRead?.ToLower() == "r")
+                        SendReplication();
+                    
+                    if (dataRead?.ToLower() == "s")
+                    {
+                        SendSubscription(microserviceCommunication);
+                        SendSubscription(microserviceManufacturing);
+                    }
+
+                    int total = int.TryParse(dataRead, out total) ? total : 0;
+                    Parallel.For(0, total, count =>
+                    {
+                        SendCommand();
+                    });                    
+                    
+                    executed = true;
+
+                    _logger.LogInformation("key to continue...");                    
+                    Console.ReadLine();
+
+                }, stoppingToken);
+            }
+        }
+
+        public void Configure()
         {
             if (executed)
                 return;
 
-            Console.WriteLine($"Get Secrets...");
+            _logger.LogInformation("Get Secrets...");            
             var secrets = Secrets.Load(_settings);
-
-            Console.WriteLine($"Simulator to send messages to: {microservice}");
+            
+            _logger.LogInformation("Simulator to send messages to {microservice}", microservice);
 
             _connectionFactory = new()
             {
                 HostName = secrets.RabbitHost,
                 UserName = secrets.RabbitUser,
                 Password = secrets.RabbitPassword,
-                Port = secrets.RabbitPort
+                Port = secrets.RabbitPort,
+                ClientProvidedName = "simulator",
+                RequestedHeartbeat = TimeSpan.FromMicroseconds(requestedHeartbeatSeconds)
             };
 
             _channel = _connectionFactory.CreateConnection()
                                          .CreateModel();
 
+            _logger.LogInformation("Clean all queues");            
             CreateQueuesReplications();
-            Task.Delay(TimeSpan.FromSeconds(1)).Wait();
-
-            var periodicTime = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
-
-            SendSubscription(microserviceCommunication);
-            SendSubscription(microserviceManufacturing);
-
-            int count = 0;
-            while (await periodicTime.WaitForNextTickAsync())
-            {
-                SendCommand();
-                SendReplication();
-
-                count++;
-                if (count == 1)
-                    break;
-            }
-
-            executed = true;
         }
 
-        private static void SendReplication()
+        private void DeleteQueues()
+        {
+            _channel.QueuePurge(microserviceCommunication);
+            _channel.QueuePurge(microserviceManufacturing);
+            _channel.QueuePurge(microservice);
+        }
+
+        private void SendReplication()
         {
             Replication replication = new()
             {
@@ -92,7 +137,6 @@ namespace Microservice
             {
                 { header, microservice }
             };
-
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
@@ -102,10 +146,10 @@ namespace Microservice
             Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Content.Id}");
         }
 
-        private static void CreateQueuesReplications()
+        private void CreateQueuesReplications()
         {
             _channel.QueueDeclareNoWait(microserviceCommunication,
-                                        durable: true, exclusive: false,
+            durable: true, exclusive: false,
                                         autoDelete: false, arguments:
                                         new Dictionary<string, object> { { header, microserviceCommunication } });
 
@@ -115,7 +159,7 @@ namespace Microservice
                                         new Dictionary<string, object> { { header, microserviceCommunication } });
         }
 
-        private static void SendCommand()
+        private void SendCommand()
         {
             var sale = CreateRadomSale();
 
@@ -135,7 +179,6 @@ namespace Microservice
             {
                 { header, microservice }
             };
-
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
@@ -145,7 +188,7 @@ namespace Microservice
             Console.WriteLine($"Message Sale: {message.Id}");
         }
 
-        private static void SendSubscription(string name)
+        private void SendSubscription(string name)
         {
             Subscription subscription = new()
             {
@@ -173,7 +216,6 @@ namespace Microservice
             {
                 { header, microservice }
             };
-
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
@@ -255,7 +297,6 @@ namespace Microservice
         public static List<Customer> Customers => new()
         {
             new Customer("Steve", "Golth", 19),
-            new Customer("Clauber", "Soul", 17),
             new Customer("Riber", "Cliff", 22),
             new Customer("Jonn", "Crow", 32),
             new Customer("Bianca", "Sibre", 40),

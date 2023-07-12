@@ -19,18 +19,13 @@ namespace Microservice
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Started microservice");
+            _logger.LogInformation("Microservices in execution..");
+            await Microservice<Sale>.Configure(_settings)
+                                    .Execute<Sell>()
+                                    .Apply<CarEndManufacturing>()
+                                    .Start();
 
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                await Microservice<Sale>.Configure(_settings)
-                                        .Execute<Sell>()
-                                        .Apply<CarEndManufacturing>()
-                                        .Start();
-
-                await Task.Delay(5000, stoppingToken);
-                await Task.Run(() => Simulator.Start(_settings), stoppingToken);
-            }
+            Console.ReadLine();
         }
     }
 }
