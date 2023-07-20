@@ -1,6 +1,6 @@
 ﻿namespace Packages.Commands
 {
-    public abstract class Context : IStorable
+    public abstract class Context : IStorable, IReceivable
     {
         public string Name { get; } = string.Empty;
 
@@ -15,5 +15,7 @@
         StorableType IStorable.StorableType { get; set; } = StorableType.Contexts;
 
         public string? LastReplicationId { get; set; }
+
+        public ulong DeliveryTag { get; set; }
     }
 }

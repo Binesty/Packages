@@ -1,6 +1,6 @@
 ﻿namespace Packages.Commands
 {
-    public class Subscription : IStorable
+    public class Subscription : IStorable, IReceivable
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
@@ -19,6 +19,8 @@
         public DateTime CreateDate => DateTime.UtcNow;
 
         public StorableStatus StorableStatus { get; set; }
+
+        public ulong DeliveryTag { get; set; }
 
         StorableType IStorable.StorableType { get; set; } = StorableType.Subscriptions;
 

@@ -33,7 +33,7 @@ namespace Simulator
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Configure();  
+            Configure();
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -43,7 +43,6 @@ namespace Simulator
                     _logger.LogInformation("Simulator start");
 
                     DeleteQueues();
-                    
 
                     _logger.LogInformation("Input total messages");
                     var dataRead = Console.ReadLine();
@@ -53,7 +52,7 @@ namespace Simulator
 
                     if (dataRead?.ToLower() == "r")
                         SendReplication();
-                    
+
                     if (dataRead?.ToLower() == "s")
                     {
                         SendSubscription(microserviceCommunication);
@@ -64,13 +63,12 @@ namespace Simulator
                     Parallel.For(0, total, count =>
                     {
                         SendCommand();
-                    });                    
-                    
+                    });
+
                     executed = true;
 
-                    _logger.LogInformation("key to continue...");                    
+                    _logger.LogInformation("key to continue...");
                     Console.ReadLine();
-
                 }, stoppingToken);
             }
         }
@@ -80,9 +78,9 @@ namespace Simulator
             if (executed)
                 return;
 
-            _logger.LogInformation("Get Secrets...");            
+            _logger.LogInformation("Get Secrets...");
             var secrets = Secrets.Load(_settings);
-            
+
             _logger.LogInformation("Simulator to send messages to {microservice}", microservice);
 
             _connectionFactory = new()
@@ -98,7 +96,7 @@ namespace Simulator
             _channel = _connectionFactory.CreateConnection()
                                          .CreateModel();
 
-            _logger.LogInformation("Clean all queues");            
+            _logger.LogInformation("Clean all queues");
             CreateQueuesReplications();
         }
 
