@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using System;
 using System.Linq.Expressions;
 using System.Text.Json;
 
@@ -46,7 +47,7 @@ namespace Packages.Commands
 
                 argument.Message.DeliveryTag = argument.DeliveryTag;
 
-                _ = argument.Message.Type switch
+                var processed = argument.Message.Type switch
                 {
                     MessageType.Command => ExecuteCommand(argument.Message),
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
@@ -54,6 +55,16 @@ namespace Packages.Commands
 
                     _ => false
                 };
+
+                if (!processed)
+                {
+                    _broker.PublishError(new Message()
+                    {
+                        Content = $"Error Processed: {JsonSerializer.Serialize(argument.Message)}",
+                    });
+
+                    _broker.RejectDelivery(argument.DeliveryTag);
+                }
             }
             catch (Exception exception)
             {
@@ -86,14 +97,23 @@ namespace Packages.Commands
 
         public async Task Start()
         {
-            while (await periodicTimer.WaitForNextTickAsync())
+            try
             {
-                if (!_broker.Helth())
-                    _broker.Start();
+                while (await periodicTimer.WaitForNextTickAsync())
+                {
+                    if (!_broker.Helth())
+                        _broker.Start();
 
-                var contexts = GetContexts();
-                if (contexts.Any())
-                    await _repository.BulkSave<TContext>(contexts);
+                    var contexts = GetContexts();
+                    if (contexts.Any())
+                        await _repository.BulkSave<TContext>(contexts);
+                }
+            }
+            catch (Exception)
+            {
+                //Log Exception
+                
+                await Start();
             }
         }
 
