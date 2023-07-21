@@ -10,17 +10,21 @@ namespace Packages.Commands
         private readonly string Name;
         string IRepository.Name => Name;
 
+        private const short MaxDegreeOfParallelism = 3;
+
         private readonly IOptions<Settings> _settings;
+        private readonly Broker<TContext> _broker;
         private readonly Secrets _secrets;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(IOptions<Settings> settings, Secrets secrets)
+        internal Cosmos(IOptions<Settings> settings, Secrets secrets, Broker<TContext> broker)
         {
             _settings = settings;
             _secrets = secrets;
+            _broker = broker;
 
             Name = _settings.Value.Name;
 
@@ -51,7 +55,7 @@ namespace Packages.Commands
                 {
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 },
-
+                AllowBulkExecution = true,
                 ConnectionMode = ConnectionMode.Gateway,
                 RequestTimeout = TimeSpan.FromSeconds(30)
             };
@@ -84,6 +88,21 @@ namespace Packages.Commands
             return await container.DeleteItemAsync<TStorable>(storable.Id, new PartitionKey(storable.Partition));
         }
 
+        private static Task<ItemResponse<TStorable>> BulkCreate<TStorable>(Container container, IStorable storable) where TStorable : IStorable
+        {
+            return container.UpsertItemAsync<TStorable>(storable as dynamic, new PartitionKey(storable.Partition));
+        }
+
+        private static Task<ItemResponse<TStorable>> BulkReplace<TStorable>(Container container, IStorable storable) where TStorable : IStorable
+        {
+            return container.UpsertItemAsync<TStorable>(storable as dynamic, new PartitionKey(storable.Partition));
+        }
+
+        private static Task<ItemResponse<TStorable>> BulkDelete<TStorable>(Container container, IStorable storable) where TStorable : IStorable
+        {
+            return container.DeleteItemAsync<TStorable>(storable.Id, new PartitionKey(storable.Partition));
+        }
+
         async Task<IStorable?> IRepository.Save<TStorable>(IStorable storable)
         {
             var container = GetContainer(storable.StorableType);
@@ -106,6 +125,62 @@ namespace Packages.Commands
             }
 
             return default;
+        }
+
+        async Task<IEnumerable<TStorable>> IRepository.BulkSave<TStorable>(IEnumerable<IStorable> storables)
+        {
+            var container = GetContainer(storables.FirstOrDefault()?.StorableType ?? StorableType.Contexts);
+            IList<TStorable> saved = new List<TStorable>();
+
+            if (container is not null)
+            {
+                var tasks = new List<Task<(ItemResponse<TStorable>?, Exception?)>>();
+
+                foreach (var storable in storables)
+                {
+                    var task = storable.StorableStatus switch
+                    {
+                        StorableStatus.New => BulkCreate<TStorable>(container, storable),
+                        StorableStatus.Changed => BulkReplace<TStorable>(container, storable),
+                        StorableStatus.Deleted => BulkDelete<TStorable>(container, storable),
+
+                        _ => default,
+                    };
+
+                    if (task is not null)
+                        tasks.Add(ExecuteAndCaptureErrors(task));
+                }
+
+                await Task.WhenAll(tasks);
+            }
+
+            return saved;
+        }
+
+        private async Task<(ItemResponse<TStorable>?, Exception?)> ExecuteAndCaptureErrors<TStorable>(Task<ItemResponse<TStorable>> operation) where TStorable : IStorable
+        {
+            ItemResponse<TStorable>? result = null;
+
+            try
+            {
+                result = await operation;
+
+                _broker.ConfirmDelivery(result.Resource.DeliveryTag);
+
+                if (result.Resource is TContext context)
+                    _broker.SendReplications(context);
+
+                return (result, default);
+            }
+            catch (Exception exception)
+            {
+                _broker?.PublishError(new Message() { Content = exception.Message });
+
+                if (result is not null)
+                    _broker?.RejectDelivery(result.Resource.DeliveryTag);
+
+                return (default, exception);
+            }
         }
 
         async Task<IEnumerable<TStorable>> IRepository.Fetch<TStorable>(Expression<Func<TStorable, bool>> expression, StorableType storableType, Expression<Func<TStorable, bool>>? optionalExpression, int units)

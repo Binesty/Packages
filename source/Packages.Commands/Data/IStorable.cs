@@ -1,6 +1,6 @@
 ﻿namespace Packages.Commands
 {
-    public interface IStorable
+    public interface IStorable : IReceivable
     {
         string Id { get; set; }
 

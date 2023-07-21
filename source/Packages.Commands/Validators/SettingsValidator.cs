@@ -17,6 +17,9 @@ namespace Packages.Commands
 
             RuleFor(options => options.VaultToken)
                    .NotEmpty();
+
+            RuleFor(options => options.MaxMessagesProcessingInstance)
+                   .GreaterThan((ushort)0);
         }
     }
 }

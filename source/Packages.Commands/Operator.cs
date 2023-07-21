@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Dynamic;
 using System.Linq.Expressions;
 using System.Text.Json;
 
@@ -7,27 +6,77 @@ namespace Packages.Commands
 {
     public sealed class Operator<TContext> where TContext : Context
     {
-        private readonly Rabbit _broker;        
-        private readonly IRepository _repository = null!;
         private readonly IOptions<Settings> _settings = null!;
+
+        private readonly Broker<TContext> _broker;
+        private readonly IRepository _repository = null!;
         private readonly Secrets _secrets = null!;
+        private readonly string _instance = null!;
+
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
-        private bool started = false;
+
+        private readonly Queue<TContext> _queueContextsCommands = new();
+
+        private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
 
         internal Operator(IOptions<Settings> settings)
         {
-            _settings = settings;            
+            _settings = settings;
             _secrets = Secrets.Load(_settings);
-            _repository = new Cosmos<TContext>(_settings, _secrets);
+            _instance = $"[{Guid.NewGuid().ToString()[..5].ToLower()}]";
+
+            _broker = new Broker<TContext>(_settings, _secrets, _instance);
+
+            _repository = new Cosmos<TContext>(_settings, _secrets, _broker);
 
             Subscriptions = new List<Subscription>(_repository.Fetch<Subscription>(subscription => subscription.Active == true, StorableType.Subscriptions)
                                                               .GetAwaiter()
                                                               .GetResult());
 
-            _broker = new(_settings, _secrets, Subscriptions);
-            
+            _broker.UpdateBindingSubscription(Subscriptions);
+
+            _broker.MessageReceived += MessageReceived;
+        }
+
+        private async void MessageReceived(object? sender, MessageEventArgs argument)
+        {
+            try
+            {
+                if (argument.Message is null)
+                    return;
+
+                argument.Message.DeliveryTag = argument.DeliveryTag;
+
+                var processed = argument.Message.Type switch
+                {
+                    MessageType.Command => ExecuteCommand(argument.Message),
+                    MessageType.Subscription => await RegisterSubscription(argument.Message),
+                    MessageType.Replication => await ApplyReplication(argument.Message),
+
+                    _ => false
+                };
+
+                if (!processed)
+                {
+                    _broker.PublishError(new Message()
+                    {
+                        Content = $"Error Processed: {JsonSerializer.Serialize(argument.Message)}",
+                    });
+
+                    _broker.RejectDelivery(argument.DeliveryTag);
+                }
+            }
+            catch (Exception exception)
+            {
+                _broker.PublishError(new Message()
+                {
+                    Content = exception.Message,
+                });
+
+                _broker.ConfirmDelivery(argument.DeliveryTag);
+            }
         }
 
         public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
@@ -48,43 +97,45 @@ namespace Packages.Commands
             return this;
         }
 
-        public Task Start()
+        public async Task Start()
         {
-            return 
-            Task.Run(() => 
+            try
             {
-                if (started)
-                    return this;
+                while (await periodicTimer.WaitForNextTickAsync())
+                {
+                    if (!_broker.Helth())
+                        _broker.Start();
 
-                started = true;
+                    var contexts = GetContexts();
+                    if (contexts.Any())
+                        await _repository.BulkSave<TContext>(contexts);
+                }
+            }
+            catch (Exception)
+            {
+                //Log Exception
 
-                _broker.MessageReceived += MessageReceived;
-                return this;
-            });
+                await Start();
+            }
         }
 
-        private void MessageReceived(object? sender, MessageEventArgs argument)
+        private IEnumerable<TContext> GetContexts()
         {
-            if (argument.Message is null)
-                return;
-
-            Task.Run(async () =>
+            List<TContext> contexts = new();
+            for (int i = 0; i < _settings.Value.MaxMessagesProcessingInstance; i++)
             {
-                _ = argument.Message.Type switch
-                {
-                    MessageType.Command => await ExecuteCommand(argument.Message),
-                    MessageType.Subscription => await RegisterSubscription(argument.Message),
-                    MessageType.Replication => await ApplyReplication(argument.Message),
+                if (!_queueContextsCommands.Any())
+                    break;
 
-                    _ => false
-                };
+                var context = _queueContextsCommands.Dequeue();
 
-                _broker?.ConfirmDelivery(argument.DeliveryTag);
-            }).ContinueWith(continuetion =>
-            {
-                argument.Message.Notes = continuetion.Exception?.Message;
-                _broker?.PublishError(argument.Message);
-            }, TaskContinuationOptions.OnlyOnFaulted);
+                if (context is null)
+                    continue;
+
+                contexts.Add(context);
+            }
+
+            return contexts;
         }
 
         private async Task<bool> ApplyReplication(Message message)
@@ -92,6 +143,8 @@ namespace Packages.Commands
             var replication = JsonSerializer.Deserialize<Replication>(message.Content);
             if (replication == null)
                 return false;
+
+            replication.DeliveryTag = message.DeliveryTag;
 
             var replicationType = Replications.FirstOrDefault(item => item.Name == message.Operation);
             if (replicationType is null)
@@ -120,17 +173,19 @@ namespace Packages.Commands
 
                 await _repository.Save<TContext>(change);
 
-                SendReplications(change);
+                _broker.SendReplications(change);
             });
 
             return true;
         }
 
-        private async Task<bool> ExecuteCommand(Message message)
+        private bool ExecuteCommand(Message message)
         {
             var context = JsonSerializer.Deserialize<TContext>(message.Content);
             if (context == null)
                 return false;
+
+            context.DeliveryTag = message.DeliveryTag;
 
             var commandType = Commands.FirstOrDefault(item => item.Name == message.Operation);
             if (commandType is null)
@@ -143,13 +198,14 @@ namespace Packages.Commands
             if (!((ICommand<TContext>)command).CanExecute(context))
                 return false;
 
-            var change = ((ICommand<TContext>)command).Execute(context);
-            if (change is null)
+            var contextChange = ((ICommand<TContext>)command).Execute(context);
+            if (contextChange is null)
                 return false;
 
-            await _repository.Save<TContext>(change);
-
-            SendReplications(change);
+            lock (_queueContextsCommands)
+            {
+                _queueContextsCommands.Enqueue(contextChange);
+            }
 
             return true;
         }
@@ -159,6 +215,8 @@ namespace Packages.Commands
             var subscription = JsonSerializer.Deserialize<Subscription>(message.Content);
             if (subscription == null || !Subscription.Validade(subscription))
                 return false;
+
+            subscription.DeliveryTag = message.DeliveryTag;
 
             var exists = await _repository.Fetch<Subscription>(x => x.Subscriber == subscription.Subscriber, StorableType.Subscriptions);
             if (exists.Any())
@@ -176,45 +234,6 @@ namespace Packages.Commands
             _broker?.UpdateBindingSubscription(Subscriptions);
 
             return true;
-        }
-
-        private void SendReplications(TContext context)
-        {
-            Parallel.ForEach(Subscriptions, subscription =>
-            {
-                var replicaton = Operator<TContext>.FilterFieldsContext(context, subscription);
-
-                Message message = new()
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Owner = _settings.Value.Name,
-                    Type = MessageType.Replication,
-                    Destination = subscription.Subscriber,
-                    Operation = nameof(Replication),
-                    Date = DateTime.UtcNow,
-                    Content = JsonSerializer.Serialize(replicaton)
-                };
-
-                _broker?.Replicate(message);
-            });
-        }
-
-        private static dynamic FilterFieldsContext(TContext context, Subscription subscription)
-        {
-            var replication = new ExpandoObject();
-
-            foreach (var field in subscription.Fields)
-            {
-                var property = context.GetType()
-                                      .GetProperty(field);
-
-                if (property is null)
-                    continue;
-
-                replication.TryAdd(field, property.GetValue(context));
-            }
-
-            return replication;
         }
     }
 }

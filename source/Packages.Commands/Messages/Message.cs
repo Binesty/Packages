@@ -1,6 +1,6 @@
 ﻿namespace Packages.Commands
 {
-    public class Message
+    public class Message : IReceivable
     {
         public string Id { get; set; } = string.Empty;
 
@@ -17,6 +17,8 @@
         public string? Notes { get; set; }
 
         public DateTime Date { get; set; }
+
+        public ulong DeliveryTag { get; set; }
     }
 
     public enum MessageType : int
