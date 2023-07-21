@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System;
 using System.Linq.Expressions;
 using System.Text.Json;
 
@@ -8,15 +7,16 @@ namespace Packages.Commands
     public sealed class Operator<TContext> where TContext : Context
     {
         private readonly IOptions<Settings> _settings = null!;
-        
+
         private readonly Broker<TContext> _broker;
         private readonly IRepository _repository = null!;
         private readonly Secrets _secrets = null!;
-        
+        private readonly string _instance = null!;
+
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
-        
+
         private readonly Queue<TContext> _queueContextsCommands = new();
 
         private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
@@ -25,7 +25,9 @@ namespace Packages.Commands
         {
             _settings = settings;
             _secrets = Secrets.Load(_settings);
-            _broker = new Broker<TContext>(_settings, _secrets);
+            _instance = $"[{Guid.NewGuid().ToString()[..5].ToLower()}]";
+
+            _broker = new Broker<TContext>(_settings, _secrets, _instance);
 
             _repository = new Cosmos<TContext>(_settings, _secrets, _broker);
 
@@ -112,7 +114,7 @@ namespace Packages.Commands
             catch (Exception)
             {
                 //Log Exception
-                
+
                 await Start();
             }
         }

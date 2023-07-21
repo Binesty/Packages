@@ -159,21 +159,21 @@ namespace Packages.Commands
 
         private async Task<(ItemResponse<TStorable>?, Exception?)> ExecuteAndCaptureErrors<TStorable>(Task<ItemResponse<TStorable>> operation) where TStorable : IStorable
         {
-            ItemResponse<TStorable>? result = null; 
+            ItemResponse<TStorable>? result = null;
 
             try
             {
                 result = await operation;
 
                 _broker.ConfirmDelivery(result.Resource.DeliveryTag);
-                
+
                 if (result.Resource is TContext context)
                     _broker.SendReplications(context);
 
                 return (result, default);
             }
             catch (Exception exception)
-            {             
+            {
                 _broker?.PublishError(new Message() { Content = exception.Message });
 
                 if (result is not null)

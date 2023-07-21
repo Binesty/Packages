@@ -12,6 +12,7 @@ namespace Packages.Commands
         private const string header = "microservice";
         private const short requestedHeartbeatSeconds = 10;
         private readonly TimeSpan retryDelay = TimeSpan.FromSeconds(requestedHeartbeatSeconds);
+        private readonly string _instance = string.Empty;
 
         private const string exchangeErrorPrefix = "errors";
         private const string exchangeEntryPrefix = "entry";
@@ -36,10 +37,11 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(IOptions<Settings> settings, Secrets secrets)
+        public Broker(IOptions<Settings> settings, Secrets secrets, string instance)
         {
             _settings = settings;
             _secrets = secrets;
+            _instance = instance;
 
             Start();
         }
@@ -94,7 +96,7 @@ namespace Packages.Commands
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
                 Port = _secrets.RabbitPort,
-                ClientProvidedName = $"{_settings.Value.Name}-{exchangeErrorPrefix}",
+                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeErrorPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
@@ -122,7 +124,7 @@ namespace Packages.Commands
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
                 Port = _secrets.RabbitPort,
-                ClientProvidedName = $"{_settings.Value.Name}-{exchangeReplicationPrefix}",
+                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeReplicationPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
@@ -152,7 +154,7 @@ namespace Packages.Commands
                 UserName = _secrets.RabbitUser,
                 Password = _secrets.RabbitPassword,
                 Port = _secrets.RabbitPort,
-                ClientProvidedName = $"{_settings.Value.Name}-{exchangeEntryPrefix}",
+                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeEntryPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
