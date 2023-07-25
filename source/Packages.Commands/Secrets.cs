@@ -7,6 +7,7 @@ namespace Packages.Commands
 {
     public class Secrets
     {
+        public string CatalogEndPoint { get; init; } = string.Empty;
         public string CosmosPrimaryKey { get; init; } = string.Empty;
         public string CosmosEndPoint { get; init; } = string.Empty;
         public string RabbitHost { get; init; } = string.Empty;

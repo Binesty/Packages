@@ -18,6 +18,8 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
+        public string ExchangeEntry => $"{_settings.Value.Name}-{exchangeEntryPrefix}";
+
         private readonly IOptions<Settings> _settings;
         private readonly Secrets _secrets;
         private List<Subscription> _subscriptions = new();
@@ -163,7 +165,7 @@ namespace Packages.Commands
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                                    .CreateModel();
 
-            string exchange = $"{_settings.Value.Name}-{exchangeEntryPrefix}";
+            string exchange = ExchangeEntry;
             var headers = new Dictionary<string, object>
             {
                 { header, _settings.Value.Name }

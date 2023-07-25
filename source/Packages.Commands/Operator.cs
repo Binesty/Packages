@@ -7,18 +7,15 @@ namespace Packages.Commands
     public sealed class Operator<TContext> where TContext : Context
     {
         private readonly IOptions<Settings> _settings = null!;
-
-        private readonly Broker<TContext> _broker;
         private readonly IRepository _repository = null!;
-        private readonly Secrets _secrets = null!;
+        private readonly Broker<TContext> _broker;
+        private readonly Secrets _secrets = null!;           
         private readonly string _instance = null!;
 
         private readonly IList<Type> Commands = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
-
         private readonly Queue<TContext> _queueContextsCommands = new();
-
         private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
 
         internal Operator(IOptions<Settings> settings)
@@ -36,7 +33,6 @@ namespace Packages.Commands
                                                               .GetResult());
 
             _broker.UpdateBindingSubscription(Subscriptions);
-
             _broker.MessageReceived += MessageReceived;
         }
 
@@ -99,6 +95,8 @@ namespace Packages.Commands
 
         public async Task Start()
         {
+            UpdateContract();
+
             while (await periodicTimer.WaitForNextTickAsync())
             {
                 if (!_broker.Helth())
@@ -227,6 +225,36 @@ namespace Packages.Commands
             _broker?.UpdateBindingSubscription(Subscriptions);
 
             return true;
+        }
+
+        private void UpdateContract()
+        {
+            var contextType = typeof(TContext);
+
+            var contract = new Contract
+            {
+                Name = _settings.Value.Name,
+                Description = _settings.Value.Description,
+                LastInstance = _instance,
+                Exchange = _broker.ExchangeEntry,
+                StartDate = DateTime.UtcNow,
+                Context = contextType.Name
+            };
+
+            foreach (var property in contextType.GetProperties())
+            {
+                if (property.DeclaringType == contextType)
+                    contract.Models.Add(property.Name);
+            }
+            
+            foreach (var command in Commands)
+                contract.Commands.Add(command.Name);
+
+            foreach (var replication in Replications)
+                contract.Replications.Add(replication.Name);
+
+            foreach (var subscription in Subscriptions)
+                contract.Subscriptions.Add(subscription.Subscriber);
         }
     }
 }
