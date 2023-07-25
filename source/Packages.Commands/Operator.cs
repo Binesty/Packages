@@ -99,23 +99,14 @@ namespace Packages.Commands
 
         public async Task Start()
         {
-            try
+            while (await periodicTimer.WaitForNextTickAsync())
             {
-                while (await periodicTimer.WaitForNextTickAsync())
-                {
-                    if (!_broker.Helth())
-                        _broker.Start();
+                if (!_broker.Helth())
+                    _broker.Start();
 
-                    var contexts = GetContexts();
-                    if (contexts.Any())
-                        await _repository.BulkSave<TContext>(contexts);
-                }
-            }
-            catch (Exception)
-            {
-                //Log Exception
-
-                await Start();
+                var contexts = GetContexts();
+                if (contexts.Any())
+                    await _repository.BulkSave<TContext>(contexts);
             }
         }
 
@@ -124,15 +115,17 @@ namespace Packages.Commands
             List<TContext> contexts = new();
             for (int i = 0; i < _settings.Value.MaxMessagesProcessingInstance; i++)
             {
-                if (!_queueContextsCommands.Any())
-                    break;
+                if (_queueContextsCommands.Any())
+                {
+                    lock(_queueContextsCommands)
+                    {
+                        var context = _queueContextsCommands.Dequeue();
+                        if (context is null)
+                            continue;
 
-                var context = _queueContextsCommands.Dequeue();
-
-                if (context is null)
-                    continue;
-
-                contexts.Add(context);
+                        contexts.Add(context);
+                    }
+                }
             }
 
             return contexts;
