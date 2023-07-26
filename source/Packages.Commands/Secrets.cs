@@ -20,14 +20,14 @@ namespace Packages.Commands
             string version = "v1";
             string pathSecret = "packages-commands";
 
-            using var httpClint = new HttpClient() { BaseAddress = new Uri(_settings.Value.VaultAddress) };
+            using var httpClient = new HttpClient() { BaseAddress = new Uri(_settings.Value.VaultAddress) };
 
-            httpClint.DefaultRequestHeaders.Add("X-Vault-Token", _settings.Value.VaultToken);
+            httpClient.DefaultRequestHeaders.Add("X-Vault-Token", _settings.Value.VaultToken);
             string? environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")?.ToLower();
 
-            var result = httpClint.GetFromJsonAsync<JsonNode>($"{version}/{environment}/{pathSecret}")
-                                  .GetAwaiter()
-                                  .GetResult() ?? throw new Exception("Not get secrets from the vault");
+            var result = httpClient.GetFromJsonAsync<JsonNode>($"{version}/{environment}/{pathSecret}")
+                                   .GetAwaiter()
+                                   .GetResult() ?? throw new Exception("Not get secrets from the vault");
 
             var secrets = result["data"]?.Deserialize<Secrets>();
 

@@ -95,7 +95,7 @@ namespace Packages.Commands
 
         public async Task Start()
         {
-            UpdateContract();
+            PublishContract();
 
             while (await periodicTimer.WaitForNextTickAsync())
             {
@@ -227,7 +227,7 @@ namespace Packages.Commands
             return true;
         }
 
-        private void UpdateContract()
+        private void PublishContract()
         {
             var contextType = typeof(TContext);
 
@@ -255,6 +255,8 @@ namespace Packages.Commands
 
             foreach (var subscription in Subscriptions)
                 contract.Subscriptions.Add(subscription.Subscriber);
+
+
         }
     }
 }
