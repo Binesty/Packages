@@ -8,8 +8,7 @@ namespace Packages.Commands
     {
         private readonly IOptions<Settings> _settings = null!;
         private readonly IRepository _repository = null!;
-        private readonly Broker<TContext> _broker;
-        private readonly Secrets _secrets = null!;           
+        private readonly Broker<TContext> _broker;        
         private readonly string _instance = null!;
 
         private readonly IList<Type> Commands = new List<Type>();
@@ -21,12 +20,12 @@ namespace Packages.Commands
         internal Operator(IOptions<Settings> settings)
         {
             _settings = settings;
-            _secrets = Secrets.Load(_settings);
+
             _instance = $"[{Guid.NewGuid().ToString()[..5].ToLower()}]";
 
-            _broker = new Broker<TContext>(_settings, _secrets, _instance);
+            _broker = new Broker<TContext>(_settings, _instance);
 
-            _repository = new Cosmos<TContext>(_settings, _secrets, _broker);
+            _repository = new Cosmos<TContext>(_settings, _broker);
 
             Subscriptions = new List<Subscription>(_repository.Fetch<Subscription>(subscription => subscription.Active == true, StorableType.Subscriptions)
                                                               .GetAwaiter()

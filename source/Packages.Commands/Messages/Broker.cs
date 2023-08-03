@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Packages.Commands.Extensions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Dynamic;
@@ -21,7 +22,6 @@ namespace Packages.Commands
         public string ExchangeEntry => $"{_settings.Value.Name}-{exchangeEntryPrefix}";
 
         private readonly IOptions<Settings> _settings;
-        private readonly Secrets _secrets;
         private List<Subscription> _subscriptions = new();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -39,10 +39,9 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(IOptions<Settings> settings, Secrets secrets, string instance)
+        public Broker(IOptions<Settings> settings, string instance)
         {
-            _settings = settings;
-            _secrets = secrets;
+            _settings = settings;            
             _instance = instance;
 
             Start();
@@ -94,10 +93,10 @@ namespace Packages.Commands
 
             _connectionFactoryErrors = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeErrorPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
@@ -122,10 +121,10 @@ namespace Packages.Commands
 
             _connectionFactoryReplication = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeReplicationPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
@@ -152,10 +151,10 @@ namespace Packages.Commands
 
             _connectionFactoryEntry = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeEntryPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,

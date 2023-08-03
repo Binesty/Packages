@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Packages.Commands
 {
-    public static class OptionsBuilderFluentValidationExtensions
+    public static class OptionsFluentValidationExtensions
     {
         public static OptionsBuilder<TOptions> ValidateFluently<TOptions>(this OptionsBuilder<TOptions> optionsBuilder)
             where TOptions : class

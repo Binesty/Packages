@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
+using Packages.Commands.Extensions;
 using System.Linq.Expressions;
 
 namespace Packages.Commands
@@ -13,22 +14,22 @@ namespace Packages.Commands
         private const short MaxDegreeOfParallelism = 3;
 
         private readonly IOptions<Settings> _settings;
-        private readonly Broker<TContext> _broker;
-        private readonly Secrets _secrets;
+        private readonly Broker<TContext> _broker;        
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(IOptions<Settings> settings, Secrets secrets, Broker<TContext> broker)
+        internal Cosmos(IOptions<Settings> settings, Broker<TContext> broker)
         {
-            _settings = settings;
-            _secrets = secrets;
+            _settings = settings;            
             _broker = broker;
 
             Name = _settings.Value.Name;
 
-            CosmosClient = new CosmosClient(_secrets.CosmosEndPoint, _secrets.CosmosPrimaryKey, GetOptions());
+            CosmosClient = new CosmosClient(Secret.Loaded.CosmosEndPoint,
+                                            Secret.Loaded.CosmosPrimaryKey, 
+                                            GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();

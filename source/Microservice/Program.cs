@@ -1,4 +1,5 @@
 using Packages.Commands;
+using Packages.Commands.Extensions;
 
 namespace Microservice
 {
@@ -11,10 +12,12 @@ namespace Microservice
                              {
                                  services.AddHostedService<Worker>();
 
-                                 services.AddOptions<Settings>()
+                                 services.AddOptions<Settings>()       
                                          .BindConfiguration(Settings.SectionName)
+                                         .AddPackagesCommands()
                                          .ValidateFluently()
                                          .ValidateOnStart();
+
                              })
                             .Build();
 

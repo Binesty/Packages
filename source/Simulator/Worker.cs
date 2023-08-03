@@ -79,7 +79,7 @@ namespace Simulator
                 return;
 
             _logger.LogInformation("Get Secrets...");
-            var secrets = Secrets.Load(_settings);
+            var secrets = Secret.Loaded;
 
             _logger.LogInformation("Simulator to send messages to {microservice}", microservice);
 
