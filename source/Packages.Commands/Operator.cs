@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Packages.Commands.Services;
 using System.Linq.Expressions;
 using System.Text.Json;
 
@@ -8,7 +9,7 @@ namespace Packages.Commands
     {
         private readonly IOptions<Settings> _settings = null!;
         private readonly IRepository _repository = null!;
-        private readonly Broker<TContext> _broker;        
+        private readonly Broker<TContext> _broker;
         private readonly string _instance = null!;
 
         private readonly IList<Type> Commands = new List<Type>();
@@ -94,7 +95,14 @@ namespace Packages.Commands
 
         public async Task Start()
         {
-            PublishContract();
+            try
+            {
+                PublishContract();
+            }
+            catch (Exception exception)
+            {
+                _broker.PublishError(new Message() { Content = $"Failed to Publish Contract:{exception.Message}" });
+            }
 
             while (await periodicTimer.WaitForNextTickAsync())
             {
@@ -114,7 +122,7 @@ namespace Packages.Commands
             {
                 if (_queueContextsCommands.Any())
                 {
-                    lock(_queueContextsCommands)
+                    lock (_queueContextsCommands)
                     {
                         var context = _queueContextsCommands.Dequeue();
                         if (context is null)
@@ -226,7 +234,7 @@ namespace Packages.Commands
             return true;
         }
 
-        private void PublishContract()
+        private async void PublishContract()
         {
             var contextType = typeof(TContext);
 
@@ -245,7 +253,7 @@ namespace Packages.Commands
                 if (property.DeclaringType == contextType)
                     contract.Models.Add(property.Name);
             }
-            
+
             foreach (var command in Commands)
                 contract.Commands.Add(command.Name);
 
@@ -255,7 +263,8 @@ namespace Packages.Commands
             foreach (var subscription in Subscriptions)
                 contract.Subscriptions.Add(subscription.Subscriber);
 
-
+            if (CatalogsServices.Current is not null)
+                await CatalogsServices.Current.MicroservicePublish(contract);
         }
     }
 }

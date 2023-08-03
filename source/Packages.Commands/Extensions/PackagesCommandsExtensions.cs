@@ -16,6 +16,8 @@ namespace Packages.Commands.Extensions
             var serviceProvider = optionsBuilder.Services.BuildServiceProvider();
             var vaultServices = serviceProvider.GetRequiredService<VaultServices>();
 
+            CatalogsServices.Current = serviceProvider.GetRequiredService<CatalogsServices>();
+
             Secret.Loaded = vaultServices.GetFromVault()
                                          .GetAwaiter()
                                          .GetResult()

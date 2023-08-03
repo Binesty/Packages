@@ -4,6 +4,8 @@ namespace Packages.Commands.Services
 {
     public class CatalogsServices
     {
+        internal static CatalogsServices? Current { get; set; }
+
         private readonly HttpClient _httpClient;        
 
         public CatalogsServices(HttpClient httpClient)
