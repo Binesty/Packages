@@ -1,6 +1,6 @@
-﻿using Packages.Commands.Services;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Packages.Commands.Services;
 
 namespace Packages.Commands.Extensions
 {
@@ -37,7 +37,7 @@ namespace Packages.Commands.Extensions
         {
             services.AddHttpClient<CatalogsServices>((servicesProvider, httpClient) =>
             {
-                var settings = servicesProvider.GetRequiredService<IOptions<Settings>>().Value;                
+                var settings = servicesProvider.GetRequiredService<IOptions<Settings>>().Value;
                 httpClient.BaseAddress = new Uri(settings.CatalogsAddress);
             })
             .ConfigurePrimaryHttpMessageHandler(() => { return DefaultSocketsHttpHandler; });

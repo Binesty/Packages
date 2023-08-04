@@ -1,7 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
-using Packages.Commands.Extensions;
 using System.Linq.Expressions;
 
 namespace Packages.Commands
@@ -14,7 +13,7 @@ namespace Packages.Commands
         private const short MaxDegreeOfParallelism = 3;
 
         private readonly IOptions<Settings> _settings;
-        private readonly Broker<TContext> _broker;        
+        private readonly Broker<TContext> _broker;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
@@ -22,13 +21,13 @@ namespace Packages.Commands
 
         internal Cosmos(IOptions<Settings> settings, Broker<TContext> broker)
         {
-            _settings = settings;            
+            _settings = settings;
             _broker = broker;
 
             Name = _settings.Value.Name;
 
             CosmosClient = new CosmosClient(Secret.Loaded.CosmosEndPoint,
-                                            Secret.Loaded.CosmosPrimaryKey, 
+                                            Secret.Loaded.CosmosPrimaryKey,
                                             GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
@@ -192,7 +191,8 @@ namespace Packages.Commands
 
             var items = new List<TStorable>();
 
-            var queryable = container.GetItemLinqQueryable<TStorable>(true).Where(expression);
+            var queryable = container.GetItemLinqQueryable<TStorable>(true)
+                                     .Where(expression);
 
             queryable = optionalExpression is not null ? queryable.Where(optionalExpression) : queryable;
             queryable = (units > 0) ? queryable.Take(units) : queryable;

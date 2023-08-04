@@ -6,7 +6,7 @@ namespace Packages.Commands.Services
     {
         internal static CatalogsServices? Current { get; set; }
 
-        private readonly HttpClient _httpClient;        
+        private readonly HttpClient _httpClient;
 
         public CatalogsServices(HttpClient httpClient)
         {

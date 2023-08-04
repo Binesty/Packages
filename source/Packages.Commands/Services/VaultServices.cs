@@ -4,7 +4,7 @@ namespace Packages.Commands.Services
 {
     public class VaultServices
     {
-        private readonly HttpClient _httpClient;        
+        private readonly HttpClient _httpClient;
         private const string _version = "v1";
         private const string _pathSecret = "packages-commands";
 

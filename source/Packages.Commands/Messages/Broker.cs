@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using Packages.Commands.Extensions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Dynamic;
@@ -41,7 +40,7 @@ namespace Packages.Commands
 
         public Broker(IOptions<Settings> settings, string instance)
         {
-            _settings = settings;            
+            _settings = settings;
             _instance = instance;
 
             Start();
@@ -53,16 +52,6 @@ namespace Packages.Commands
             CreateReplicationChannel();
             CreateEntryChannel();
             UpdateBindingSubscription(_subscriptions);
-        }
-
-        public bool Helth()
-        {
-            if (_channelEntry.IsClosed ||
-                _channelErrors.IsClosed ||
-                _channelReplication.IsClosed)
-                return false;
-
-            return true;
         }
 
         internal void UpdateBindingSubscription(IList<Subscription> subscriptions)
@@ -190,25 +179,37 @@ namespace Packages.Commands
 
         internal void ConfirmDelivery(ulong deliveryTag)
         {
+            if (_channelEntry.IsClosed)
+                CreateEntryChannel();
+
             _channelEntry.BasicAck(deliveryTag, false);
         }
 
         internal void RejectDelivery(ulong deliveryTag)
         {
+            if (_channelEntry.IsClosed)
+                CreateEntryChannel();
+
             _channelEntry.BasicNack(deliveryTag, false, true);
         }
 
         internal void PublishError(Message message)
         {
+            if (_channelErrors.IsClosed)
+                CreateErrorsChannel();
+
             _channelEntry.BasicPublish(exchangeErrorPrefix, exchangeErrorPrefix, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         internal void SendReplications(TContext context)
         {
+            if (_channelReplication.IsClosed)
+                CreateReplicationChannel();
+
             if (context is null)
                 return;
 
-            Parallel.ForEach(_subscriptions, subscription =>
+            Parallel.ForEach(_subscriptions.FindAll(find => find.Operataion == context.LastOperation), subscription =>
             {
                 var replicaton = FilterFieldsContext(context, subscription);
 
@@ -257,6 +258,7 @@ namespace Packages.Commands
                 replication.TryAdd(field, property.GetValue(context));
             }
 
+            replication.TryAdd(nameof(Replication.Id), Guid.NewGuid().ToString());
             return replication;
         }
     }

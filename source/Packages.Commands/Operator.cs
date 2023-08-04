@@ -45,7 +45,7 @@ namespace Packages.Commands
 
                 argument.Message.DeliveryTag = argument.DeliveryTag;
 
-                var processed = argument.Message.Type switch
+                _ = argument.Message.Type switch
                 {
                     MessageType.Command => ExecuteCommand(argument.Message),
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
@@ -53,16 +53,6 @@ namespace Packages.Commands
 
                     _ => false
                 };
-
-                if (!processed)
-                {
-                    _broker.PublishError(new Message()
-                    {
-                        Content = $"Error Processed: {JsonSerializer.Serialize(argument.Message)}",
-                    });
-
-                    _broker.RejectDelivery(argument.DeliveryTag);
-                }
             }
             catch (Exception exception)
             {
@@ -106,9 +96,6 @@ namespace Packages.Commands
 
             while (await periodicTimer.WaitForNextTickAsync())
             {
-                if (!_broker.Helth())
-                    _broker.Start();
-
                 var contexts = GetContexts();
                 if (contexts.Any())
                     await _repository.BulkSave<TContext>(contexts);
@@ -153,27 +140,33 @@ namespace Packages.Commands
                 return false;
 
             var queryImplemented = ((IReplicable<TContext>)replicate).InContexts(replication);
-            Expression<Func<TContext, bool>> queryFilterReplicationId = context => context.LastReplicationId != replication.Id;
+            Expression<Func<TContext, bool>> filterIdReplications = context => context.LastReplicationId != replication.Id;
 
-            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, queryFilterReplicationId);
-
-            Parallel.ForEach(contexts, async context =>
+            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, filterIdReplications);
+            if (contexts.Any())
             {
-                if (!((IReplicable<TContext>)replicate).CanApply(replication))
-                    return;
+                List<TContext> contextsToReplicate = new();
+                Parallel.ForEach(contexts, context =>
+                {
+                    if (!((IReplicable<TContext>)replicate).CanApply(replication))
+                        return;
 
-                var change = ((IReplicable<TContext>)replicate).Apply(context, replication);
-                if (change is null)
-                    return;
+                    var change = ((IReplicable<TContext>)replicate).Apply(context, replication);
+                    if (change is null)
+                        return;
 
-                context.StorableStatus = StorableStatus.Changed;
-                context.LastReplicationId = replication.Id;
+                    change.StorableStatus = StorableStatus.Changed;
+                    change.LastReplicationId = replication.Id;
+                    change.LastOperation = replicationType.Name;
 
-                await _repository.Save<TContext>(change);
+                    contextsToReplicate.Add(change);
+                });
 
-                _broker.SendReplications(change);
-            });
+                if (contextsToReplicate.Any())
+                    await _repository.BulkSave<TContext>(contextsToReplicate);
+            }
 
+            _broker.ConfirmDelivery(message.DeliveryTag);
             return true;
         }
 
@@ -202,6 +195,8 @@ namespace Packages.Commands
 
             lock (_queueContextsCommands)
             {
+                contextChange.Name = commandType.Name;
+                contextChange.LastOperation = commandType.Name;
                 _queueContextsCommands.Enqueue(contextChange);
             }
 
