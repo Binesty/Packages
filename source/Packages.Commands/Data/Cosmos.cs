@@ -14,21 +14,21 @@ namespace Packages.Commands
 
         private readonly IOptions<Settings> _settings;
         private readonly Broker<TContext> _broker;
-        private readonly Secrets _secrets;
         private readonly CosmosClient? CosmosClient;
         private readonly Database? Database;
         private readonly Container? Contexts;
         private readonly Container? Subscriptions;
 
-        internal Cosmos(IOptions<Settings> settings, Secrets secrets, Broker<TContext> broker)
+        internal Cosmos(IOptions<Settings> settings, Broker<TContext> broker)
         {
             _settings = settings;
-            _secrets = secrets;
             _broker = broker;
 
             Name = _settings.Value.Name;
 
-            CosmosClient = new CosmosClient(_secrets.CosmosEndPoint, _secrets.CosmosPrimaryKey, GetOptions());
+            CosmosClient = new CosmosClient(Secret.Loaded.CosmosEndPoint,
+                                            Secret.Loaded.CosmosPrimaryKey,
+                                            GetOptions());
 
             CosmosClient.CreateDatabaseIfNotExistsAsync(Name).GetAwaiter()
                                                              .GetResult();
@@ -191,7 +191,8 @@ namespace Packages.Commands
 
             var items = new List<TStorable>();
 
-            var queryable = container.GetItemLinqQueryable<TStorable>(true).Where(expression);
+            var queryable = container.GetItemLinqQueryable<TStorable>(true)
+                                     .Where(expression);
 
             queryable = optionalExpression is not null ? queryable.Where(optionalExpression) : queryable;
             queryable = (units > 0) ? queryable.Take(units) : queryable;

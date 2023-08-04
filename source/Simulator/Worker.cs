@@ -20,7 +20,6 @@ namespace Simulator
 
         private ConnectionFactory _connectionFactory = null!;
         private IModel _channel = null!;
-        private bool executed = false;
 
         private readonly IOptions<Settings> _settings;
         private readonly ILogger<Worker> _logger;
@@ -47,16 +46,17 @@ namespace Simulator
                     _logger.LogInformation("Input total messages");
                     var dataRead = Console.ReadLine();
 
-                    if (dataRead?.ToLower() == "e")
-                        return;
-
                     if (dataRead?.ToLower() == "r")
+                    {
                         SendReplication();
+                        return;
+                    }
 
                     if (dataRead?.ToLower() == "s")
                     {
-                        SendSubscription(microserviceCommunication);
-                        SendSubscription(microserviceManufacturing);
+                        SendSubscription(microserviceCommunication, nameof(CarEndManufacturing), new List<string>() { "Store" });
+                        SendSubscription(microserviceManufacturing, nameof(Sell), new List<string>() { "Cars", "Store", "Date" });
+                        return;
                     }
 
                     int total = int.TryParse(dataRead, out total) ? total : 0;
@@ -64,8 +64,6 @@ namespace Simulator
                     {
                         SendCommand();
                     });
-
-                    executed = true;
 
                     _logger.LogInformation("key to continue...");
                     Console.ReadLine();
@@ -75,11 +73,8 @@ namespace Simulator
 
         public void Configure()
         {
-            if (executed)
-                return;
-
             _logger.LogInformation("Get Secrets...");
-            var secrets = Secrets.Load(_settings);
+            var secrets = Secret.Loaded;
 
             _logger.LogInformation("Simulator to send messages to {microservice}", microservice);
 
@@ -111,9 +106,9 @@ namespace Simulator
         {
             Replication replication = new()
             {
+                Id = Guid.NewGuid().ToString(),
                 Content = new
                 {
-                    Id = Guid.NewGuid().ToString(),
                     Model = "Mercedes",
                     Name = "GLA"
                 }
@@ -141,7 +136,7 @@ namespace Simulator
 
             _channel.BasicPublish(exchange, microservice, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
-            Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Content.Id}");
+            Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Id}");
         }
 
         private void CreateQueuesReplications()
@@ -186,16 +181,16 @@ namespace Simulator
             Console.WriteLine($"Message Sale: {message.Id}");
         }
 
-        private void SendSubscription(string name)
+        private void SendSubscription(string name, string operation, List<string> fields)
         {
             Subscription subscription = new()
             {
                 Id = Guid.NewGuid().ToString(),
                 Subscriber = name,
                 Date = DateTime.UtcNow,
-                Command = nameof(Sell),
+                Operataion = operation,
                 Active = true,
-                Fields = new List<string>() { "Cars", "Store", "Date" }
+                Fields = fields
             };
 
             Message message = new()

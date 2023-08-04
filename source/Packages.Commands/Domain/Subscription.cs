@@ -8,7 +8,7 @@
 
         public DateTime? Date { get; set; } = null;
 
-        public string Command { get; set; } = string.Empty;
+        public string Operataion { get; set; } = string.Empty;
 
         public bool Active { get; set; } = false;
 
@@ -32,7 +32,7 @@
             if (string.IsNullOrEmpty(subscription.Subscriber))
                 return false;
 
-            if (string.IsNullOrEmpty(subscription.Command))
+            if (string.IsNullOrEmpty(subscription.Operataion))
                 return false;
 
             return true;

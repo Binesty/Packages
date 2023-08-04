@@ -18,8 +18,9 @@ namespace Packages.Commands
         private const string exchangeEntryPrefix = "entry";
         private const string exchangeReplicationPrefix = "replications";
 
+        public string ExchangeEntry => $"{_settings.Value.Name}-{exchangeEntryPrefix}";
+
         private readonly IOptions<Settings> _settings;
-        private readonly Secrets _secrets;
         private List<Subscription> _subscriptions = new();
 
         private ConnectionFactory _connectionFactoryEntry = null!;
@@ -37,10 +38,9 @@ namespace Packages.Commands
         public virtual void OnMessageReceived(Message message, ulong deliveryTag) =>
             MessageReceived?.Invoke(this, new MessageEventArgs() { Message = message, DeliveryTag = deliveryTag });
 
-        public Broker(IOptions<Settings> settings, Secrets secrets, string instance)
+        public Broker(IOptions<Settings> settings, string instance)
         {
             _settings = settings;
-            _secrets = secrets;
             _instance = instance;
 
             Start();
@@ -52,16 +52,6 @@ namespace Packages.Commands
             CreateReplicationChannel();
             CreateEntryChannel();
             UpdateBindingSubscription(_subscriptions);
-        }
-
-        public bool Helth()
-        {
-            if (_channelEntry.IsClosed ||
-                _channelErrors.IsClosed ||
-                _channelReplication.IsClosed)
-                return false;
-
-            return true;
         }
 
         internal void UpdateBindingSubscription(IList<Subscription> subscriptions)
@@ -92,10 +82,10 @@ namespace Packages.Commands
 
             _connectionFactoryErrors = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeErrorPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
@@ -120,10 +110,10 @@ namespace Packages.Commands
 
             _connectionFactoryReplication = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeReplicationPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
@@ -150,10 +140,10 @@ namespace Packages.Commands
 
             _connectionFactoryEntry = new()
             {
-                HostName = _secrets.RabbitHost,
-                UserName = _secrets.RabbitUser,
-                Password = _secrets.RabbitPassword,
-                Port = _secrets.RabbitPort,
+                HostName = Secret.Loaded.RabbitHost,
+                UserName = Secret.Loaded.RabbitUser,
+                Password = Secret.Loaded.RabbitPassword,
+                Port = Secret.Loaded.RabbitPort,
                 ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeEntryPrefix}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
@@ -163,7 +153,7 @@ namespace Packages.Commands
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                                    .CreateModel();
 
-            string exchange = $"{_settings.Value.Name}-{exchangeEntryPrefix}";
+            string exchange = ExchangeEntry;
             var headers = new Dictionary<string, object>
             {
                 { header, _settings.Value.Name }
@@ -189,25 +179,37 @@ namespace Packages.Commands
 
         internal void ConfirmDelivery(ulong deliveryTag)
         {
+            if (_channelEntry.IsClosed)
+                CreateEntryChannel();
+
             _channelEntry.BasicAck(deliveryTag, false);
         }
 
         internal void RejectDelivery(ulong deliveryTag)
         {
+            if (_channelEntry.IsClosed)
+                CreateEntryChannel();
+
             _channelEntry.BasicNack(deliveryTag, false, true);
         }
 
         internal void PublishError(Message message)
         {
+            if (_channelErrors.IsClosed)
+                CreateErrorsChannel();
+
             _channelEntry.BasicPublish(exchangeErrorPrefix, exchangeErrorPrefix, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         internal void SendReplications(TContext context)
         {
+            if (_channelReplication.IsClosed)
+                CreateReplicationChannel();
+
             if (context is null)
                 return;
 
-            Parallel.ForEach(_subscriptions, subscription =>
+            Parallel.ForEach(_subscriptions.FindAll(find => find.Operataion == context.LastOperation), subscription =>
             {
                 var replicaton = FilterFieldsContext(context, subscription);
 
@@ -256,6 +258,7 @@ namespace Packages.Commands
                 replication.TryAdd(field, property.GetValue(context));
             }
 
+            replication.TryAdd(nameof(Replication.Id), Guid.NewGuid().ToString());
             return replication;
         }
     }

@@ -1,4 +1,5 @@
 using Packages.Commands;
+using Packages.Commands.Extensions;
 
 namespace Simulator
 {
@@ -12,7 +13,8 @@ namespace Simulator
                                  services.AddHostedService<Worker>();
 
                                  services.AddOptions<Settings>()
-                                         .BindConfiguration(Settings.SectionName);
+                                         .BindConfiguration(Settings.SectionName)
+                                         .AddPackagesCommands();
                              })
                             .Build();
 

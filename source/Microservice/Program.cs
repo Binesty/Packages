@@ -1,4 +1,5 @@
 using Packages.Commands;
+using Packages.Commands.Extensions;
 
 namespace Microservice
 {
@@ -13,6 +14,7 @@ namespace Microservice
 
                                  services.AddOptions<Settings>()
                                          .BindConfiguration(Settings.SectionName)
+                                         .AddPackagesCommands()
                                          .ValidateFluently()
                                          .ValidateOnStart();
                              })
