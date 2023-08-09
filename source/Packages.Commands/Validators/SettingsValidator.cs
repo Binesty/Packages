@@ -12,12 +12,6 @@ namespace Packages.Commands
             RuleFor(options => options.Description)
                    .NotEmpty();
 
-            RuleFor(options => options.VaultAddress)
-                   .NotEmpty();
-
-            RuleFor(options => options.VaultToken)
-                   .NotEmpty();
-
             RuleFor(options => options.MaxMessagesProcessingInstance)
                    .GreaterThan((ushort)0);
         }
