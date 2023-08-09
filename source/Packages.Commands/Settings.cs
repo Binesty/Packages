@@ -9,11 +9,5 @@
         public string Name { get; init; } = string.Empty;
 
         public string Description { get; init; } = string.Empty;
-
-        public string VaultToken { get; init; } = string.Empty;
-
-        public string VaultAddress { get; init; } = string.Empty;
-
-        public string CatalogsAddress { get; init; } = string.Empty;
     }
 }
