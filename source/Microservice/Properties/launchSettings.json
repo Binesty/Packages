@@ -6,7 +6,10 @@
             "commandName": "Project",
             "environmentVariables":
             {
-                "DOTNET_ENVIRONMENT": "Development"
+                "DOTNET_ENVIRONMENT": "Development",
+                "ENVIRONMENT": "development",
+                "VAULT_TOKEN": "hvs.6wgRqlgOj9aQUqVeDQTyT6Nv",
+                "VAULT_ADDRESS": "http://vault.binesty.net"
             },
             "dotnetRunMessages": true
         }

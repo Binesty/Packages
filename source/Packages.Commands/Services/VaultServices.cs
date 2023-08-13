@@ -5,6 +5,8 @@ namespace Packages.Commands.Services
     public class VaultServices
     {
         private readonly HttpClient _httpClient;
+        private const string secretVersion = "v1";
+        private const string secretPath = "packages-commands";
 
         public VaultServices(HttpClient httpClient)
         {
@@ -13,9 +15,9 @@ namespace Packages.Commands.Services
 
         public async Task<Secret> GetFromVault()
         {
-            string path = Environment.GetEnvironmentVariable("VAULT_SECRET") ?? "/v1/development/packages-commands";
+            var environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "development";
 
-            var data = await _httpClient.GetFromJsonAsync<Secret>($"{path}");
+            var data = await _httpClient.GetFromJsonAsync<Secret>($"{secretVersion}/{environment}/{secretPath}");
 
             return data ?? throw new Exception("Not found secrets");
         }
