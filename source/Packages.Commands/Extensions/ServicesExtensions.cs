@@ -6,9 +6,9 @@ namespace Packages.Commands.Extensions
 {
     public static class ServicesExtension
     {
-        private static string? _vaultToken;
-        private static string? _vaultAddress;
-        private static string? _catalogsAddress;
+        private static string? _vaultToken = "hvs.6wgRqlgOj9aQUqVeDQTyT6Nv";
+        private static string? _vaultAddress = "http://vault.binesty.net";
+        private static string? _catalogsAddress = "http://api-catalogs.binesty.net";
 
         private static readonly SocketsHttpHandler DefaultSocketsHttpHandler = new()
         {
@@ -27,13 +27,7 @@ namespace Packages.Commands.Extensions
 
         private static void LoadEnvironmentVariables()
         {
-            if (Environment.GetEnvironmentVariable("ENVIRONMENT") is null)
-            {
-                _vaultAddress = "http://vault.binesty.net";
-                _vaultToken = "hvs.6wgRqlgOj9aQUqVeDQTyT6Nv";
-                _catalogsAddress = "http://api-catalogs.binesty.net";
-            }
-            else
+            if (Environment.GetEnvironmentVariable("ENVIRONMENT") != "development")
             {
                 _vaultAddress = Environment.GetEnvironmentVariable("VAULT_ADDRESS");
                 _vaultToken = Environment.GetEnvironmentVariable("VAULT_TOKEN");
