@@ -9,16 +9,12 @@ namespace Packages.Commands
 {
     internal class Broker<TContext> where TContext : Context
     {
-        private const string header = "microservice";
         private const short requestedHeartbeatSeconds = 10;
         private readonly TimeSpan retryDelay = TimeSpan.FromSeconds(requestedHeartbeatSeconds);
         private readonly string _instance = string.Empty;
+        private readonly BrokerCommunication.Configuration _brokerCommunicationConfiguration;
 
-        private const string exchangeErrorPrefix = "errors";
-        private const string exchangeEntryPrefix = "entry";
-        private const string exchangeReplicationPrefix = "replications";
-
-        public string ExchangeEntry => $"{_settings.Value.Name}-{exchangeEntryPrefix}";
+        internal string ExchangeEntry => _brokerCommunicationConfiguration.ExchangeEntry;
 
         private readonly IOptions<Settings> _settings;
         private List<Subscription> _subscriptions = new();
@@ -42,6 +38,7 @@ namespace Packages.Commands
         {
             _settings = settings;
             _instance = instance;
+            _brokerCommunicationConfiguration = BrokerCommunication.GetConfiguration(_settings.Value.Name);
 
             Start();
         }
@@ -61,14 +58,12 @@ namespace Packages.Commands
 
             _subscriptions = new List<Subscription>(subscriptions);
 
-            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
-
             foreach (var subscription in _subscriptions)
             {
                 _channelReplication.QueueBindNoWait(subscription.Subscriber,
-                                                    exchange,
-                                                    _settings.Value.Name,
-                                                    arguments: new Dictionary<string, object>() { { header, subscription.Subscriber } });
+                                                    _brokerCommunicationConfiguration.ExchangeReplication,
+                                                    _brokerCommunicationConfiguration.QueueName,
+                                                    arguments: new Dictionary<string, object>() { { _brokerCommunicationConfiguration.Header, subscription.Subscriber } });
             }
         }
 
@@ -86,7 +81,7 @@ namespace Packages.Commands
                 UserName = Secret.Loaded.RabbitUser,
                 Password = Secret.Loaded.RabbitPassword,
                 Port = Secret.Loaded.RabbitPort,
-                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeErrorPrefix}",
+                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeErrors}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
@@ -95,9 +90,14 @@ namespace Packages.Commands
             _channelErrors = _connectionFactoryErrors.CreateConnection()
                                                      .CreateModel();
 
-            _channelErrors.ExchangeDeclareNoWait(exchangeErrorPrefix, ExchangeType.Direct, durable: true, autoDelete: false);
-            _channelErrors.QueueDeclareNoWait(exchangeErrorPrefix, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            _channelErrors.QueueBindNoWait(exchangeErrorPrefix, exchangeErrorPrefix, string.Empty, arguments: null);
+            _channelErrors.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeErrors,
+                                                 ExchangeType.Direct, durable: true, autoDelete: false);
+
+            _channelErrors.QueueDeclareNoWait(_brokerCommunicationConfiguration.ExchangeErrors,
+                                              durable: true, exclusive: false, autoDelete: false, arguments: null);
+
+            _channelErrors.QueueBindNoWait(_brokerCommunicationConfiguration.ExchangeErrors,
+                                           _brokerCommunicationConfiguration.ExchangeErrors, string.Empty, arguments: null);
         }
 
         private void CreateReplicationChannel()
@@ -114,7 +114,7 @@ namespace Packages.Commands
                 UserName = Secret.Loaded.RabbitUser,
                 Password = Secret.Loaded.RabbitPassword,
                 Port = Secret.Loaded.RabbitPort,
-                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeReplicationPrefix}",
+                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeReplication}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
@@ -123,9 +123,8 @@ namespace Packages.Commands
             _channelReplication = _connectionFactoryReplication.CreateConnection()
                                                                .CreateModel();
 
-            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
-
-            _channelReplication.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
+            _channelReplication.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeReplication,
+                                                      ExchangeType.Headers, durable: true, autoDelete: false);
 
             UpdateBindingSubscription(_subscriptions);
         }
@@ -144,7 +143,7 @@ namespace Packages.Commands
                 UserName = Secret.Loaded.RabbitUser,
                 Password = Secret.Loaded.RabbitPassword,
                 Port = Secret.Loaded.RabbitPort,
-                ClientProvidedName = $"{_instance}-{_settings.Value.Name}-{exchangeEntryPrefix}",
+                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeEntry}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
@@ -153,15 +152,21 @@ namespace Packages.Commands
             _channelEntry = _connectionFactoryEntry.CreateConnection()
                                                    .CreateModel();
 
-            string exchange = ExchangeEntry;
             var headers = new Dictionary<string, object>
             {
-                { header, _settings.Value.Name }
+                { _brokerCommunicationConfiguration.Header, _brokerCommunicationConfiguration.HeaderValue }
             };
 
-            _channelEntry.ExchangeDeclareNoWait(exchange, ExchangeType.Headers, durable: true, autoDelete: false);
-            _channelEntry.QueueDeclareNoWait(_settings.Value.Name, durable: true, exclusive: false, autoDelete: false, arguments: headers);
-            _channelEntry.QueueBindNoWait(_settings.Value.Name, exchange, _settings.Value.Name, arguments: headers);
+            _channelEntry.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeEntry,
+                                                ExchangeType.Headers, durable: true, autoDelete: false);
+
+            _channelEntry.QueueDeclareNoWait(_brokerCommunicationConfiguration.QueueName,
+                                             durable: true, exclusive: false, autoDelete: false, arguments: headers);
+
+            _channelEntry.QueueBindNoWait(_brokerCommunicationConfiguration.QueueName,
+                                          _brokerCommunicationConfiguration.ExchangeEntry,
+                                          _brokerCommunicationConfiguration.QueueName, arguments: headers);
+
             _channelEntry.BasicQos(prefetchSize: 0, prefetchCount: _settings.Value.MaxMessagesProcessingInstance, global: false);
 
             _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
@@ -174,7 +179,7 @@ namespace Packages.Commands
                 }
             };
 
-            _channelEntry.BasicConsume(_settings.Value.Name, false, _eventingBasicConsumerEntry);
+            _channelEntry.BasicConsume(_brokerCommunicationConfiguration.QueueName, false, _eventingBasicConsumerEntry);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
@@ -198,7 +203,9 @@ namespace Packages.Commands
             if (_channelErrors.IsClosed)
                 CreateErrorsChannel();
 
-            _channelEntry.BasicPublish(exchangeErrorPrefix, exchangeErrorPrefix, null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
+            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangeErrors,
+                                       _brokerCommunicationConfiguration.ExchangeErrors,
+                                       null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         internal void SendReplications(TContext context)
@@ -216,7 +223,7 @@ namespace Packages.Commands
                 Message message = new()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Owner = _settings.Value.Name,
+                    Owner = _brokerCommunicationConfiguration.QueueName,
                     Type = MessageType.Replication,
                     Destination = subscription.Subscriber,
                     Operation = nameof(Replication),
@@ -230,17 +237,18 @@ namespace Packages.Commands
 
         private void Replicate(Message message)
         {
-            string exchange = $"{_settings.Value.Name}-{exchangeReplicationPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, message.Destination }
+                { _brokerCommunicationConfiguration.Header, message.Destination }
             };
 
             IBasicProperties _basicProperties = _channelErrors.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channelEntry.BasicPublish(exchange, message.Destination, _basicProperties, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
+            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangeReplication,
+                                       message.Destination, _basicProperties,
+                                       Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         private static dynamic FilterFieldsContext(TContext context, Subscription subscription)
@@ -260,6 +268,39 @@ namespace Packages.Commands
 
             replication.TryAdd(nameof(Replication.Id), Guid.NewGuid().ToString());
             return replication;
+        }
+    }
+
+    public static class BrokerCommunication
+    {
+        public static Configuration GetConfiguration(string microservice)
+        {
+            const string type = "commands";
+            return new Configuration
+            {
+                Header = "microservice",
+                HeaderValue = microservice,
+                ExchangeEntry = $"{type}:{microservice}:entry",
+                ExchangeReplication = $"{type}:{microservice}:replications",
+                ExchangeErrors = $"{type}:errors",
+                QueueName = $"{type}:{microservice}",
+                QueueErrors = $"{type}:errors"
+            };
+        }
+
+        public struct Configuration
+        {
+            public string Header { get; set; }
+
+            public string HeaderValue { get; set; }
+
+            public string ExchangeEntry { get; set; }
+            public string ExchangeReplication { get; set; }
+
+            public string ExchangeErrors { get; set; }
+
+            public string QueueName { get; set; }
+            public string QueueErrors { get; set; }
         }
     }
 }

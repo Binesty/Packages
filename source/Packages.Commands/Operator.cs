@@ -225,6 +225,7 @@ namespace Packages.Commands
             Subscriptions = new List<Subscription>(await _repository.Fetch<Subscription>(subscription => subscription.Active, StorableType.Subscriptions));
 
             _broker?.UpdateBindingSubscription(Subscriptions);
+            _broker?.ConfirmDelivery(message.DeliveryTag);
 
             return true;
         }

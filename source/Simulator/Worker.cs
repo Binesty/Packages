@@ -12,11 +12,10 @@ namespace Simulator
     public class Worker : BackgroundService
     {
         private const short requestedHeartbeatSeconds = 10;
-        private const string microservice = "car-sale";
-        private const string header = "microservice";
-        private const string exchangeEntryPrefix = "entry";
-        private const string microserviceManufacturing = "manufacturing";
-        private const string microserviceCommunication = "communication";
+
+        private BrokerCommunication.Configuration _brokerCommunicationConfigurationMicroservice = BrokerCommunication.GetConfiguration("car-sale");
+        private BrokerCommunication.Configuration _brokerCommunicationConfigurationManufacturing = BrokerCommunication.GetConfiguration("manufacturing");
+        private BrokerCommunication.Configuration _brokerCommunicationConfigurationCommunication = BrokerCommunication.GetConfiguration("communication");
 
         private ConnectionFactory _connectionFactory = null!;
         private IModel _channel = null!;
@@ -54,8 +53,8 @@ namespace Simulator
 
                     if (dataRead?.ToLower() == "s")
                     {
-                        SendSubscription(microserviceCommunication, nameof(CarEndManufacturing), new List<string>() { "Store" });
-                        SendSubscription(microserviceManufacturing, nameof(Sell), new List<string>() { "Cars", "Store", "Date" });
+                        SendSubscription(_brokerCommunicationConfigurationCommunication.QueueName, nameof(CarEndManufacturing), new List<string>() { "Store" });
+                        SendSubscription(_brokerCommunicationConfigurationManufacturing.QueueName, nameof(Sell), new List<string>() { "Cars", "Store", "Date" });
                         return;
                     }
 
@@ -76,7 +75,7 @@ namespace Simulator
             _logger.LogInformation("Get Secrets...");
             var secrets = Secret.Loaded;
 
-            _logger.LogInformation("Simulator to send messages to {microservice}", microservice);
+            _logger.LogInformation("Simulator to send messages to {microservice}", _brokerCommunicationConfigurationMicroservice.QueueName);
 
             _connectionFactory = new()
             {
@@ -97,9 +96,9 @@ namespace Simulator
 
         private void DeleteQueues()
         {
-            _channel.QueuePurge(microserviceCommunication);
-            _channel.QueuePurge(microserviceManufacturing);
-            _channel.QueuePurge(microservice);
+            _channel.QueuePurge(_brokerCommunicationConfigurationMicroservice.QueueName);
+            _channel.QueuePurge(_brokerCommunicationConfigurationCommunication.QueueName);
+            _channel.QueuePurge(_brokerCommunicationConfigurationManufacturing.QueueName);
         }
 
         private void SendReplication()
@@ -117,39 +116,45 @@ namespace Simulator
             Message message = new()
             {
                 Id = Guid.NewGuid().ToString(),
-                Owner = microserviceManufacturing,
+                Owner = _brokerCommunicationConfigurationManufacturing.QueueName,
                 Type = MessageType.Replication,
-                Destination = microservice,
+                Destination = _brokerCommunicationConfigurationMicroservice.QueueName,
                 Operation = nameof(CarEndManufacturing),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(replication)
             };
 
-            string exchange = $"{microservice}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, microservice }
+                {
+                  _brokerCommunicationConfigurationMicroservice.Header,
+                  _brokerCommunicationConfigurationMicroservice.HeaderValue
+                }
             };
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, microservice, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+                                  _brokerCommunicationConfigurationMicroservice.QueueName,
+                                  _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
-            Console.WriteLine($"Replication from {microserviceManufacturing}: {replication.Id}");
+            Console.WriteLine($"Replication from {_brokerCommunicationConfigurationManufacturing.QueueName}: {replication.Id}");
         }
 
         private void CreateQueuesReplications()
         {
-            _channel.QueueDeclareNoWait(microserviceCommunication,
+            _channel.QueueDeclareNoWait(_brokerCommunicationConfigurationCommunication.QueueName,
             durable: true, exclusive: false,
                                         autoDelete: false, arguments:
-                                        new Dictionary<string, object> { { header, microserviceCommunication } });
+                                        new Dictionary<string, object> { { _brokerCommunicationConfigurationCommunication.Header,
+                                                                           _brokerCommunicationConfigurationCommunication.HeaderValue } });
 
-            _channel.QueueDeclareNoWait(microserviceManufacturing,
+            _channel.QueueDeclareNoWait(_brokerCommunicationConfigurationManufacturing.QueueName,
                                         durable: true, exclusive: false,
                                         autoDelete: false, arguments:
-                                        new Dictionary<string, object> { { header, microserviceCommunication } });
+                                        new Dictionary<string, object> { { _brokerCommunicationConfigurationManufacturing.Header,
+                                                                           _brokerCommunicationConfigurationManufacturing.HeaderValue } });
         }
 
         private void SendCommand()
@@ -161,22 +166,25 @@ namespace Simulator
                 Id = Guid.NewGuid().ToString(),
                 Owner = "simulator",
                 Type = MessageType.Command,
-                Destination = microservice,
+                Destination = _brokerCommunicationConfigurationMicroservice.QueueName,
                 Operation = nameof(Sell),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(sale)
             };
 
-            string exchange = $"{microservice}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, microservice }
+                { _brokerCommunicationConfigurationMicroservice.Header,
+                  _brokerCommunicationConfigurationMicroservice.HeaderValue
+                }
             };
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, microservice, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+                                  _brokerCommunicationConfigurationMicroservice.QueueName,
+                                  _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Message Sale: {message.Id}");
         }
@@ -198,22 +206,26 @@ namespace Simulator
                 Id = Guid.NewGuid().ToString(),
                 Owner = name,
                 Type = MessageType.Subscription,
-                Destination = microservice,
+                Destination = _brokerCommunicationConfigurationMicroservice.QueueName,
                 Operation = nameof(Sell),
                 Date = DateTime.UtcNow,
                 Content = JsonSerializer.Serialize(subscription)
             };
 
-            string exchange = $"{microservice}-{exchangeEntryPrefix}";
             var headers = new Dictionary<string, object>
             {
-                { header, microservice }
+                {
+                  _brokerCommunicationConfigurationMicroservice.Header,
+                  _brokerCommunicationConfigurationMicroservice.HeaderValue
+                }
             };
             IBasicProperties _basicProperties = _channel.CreateBasicProperties();
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange, microservice, _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+                                  _brokerCommunicationConfigurationMicroservice.QueueName,
+                                  _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
             Console.WriteLine($"Subscription from {name}: {subscription.Id}");
         }
