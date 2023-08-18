@@ -1,4 +1,6 @@
-﻿namespace Packages.Commands
+﻿using Packages.Microservices.Messages;
+
+namespace Packages.Microservices.Data
 {
     public interface IStorable : IReceivable
     {

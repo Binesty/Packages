@@ -1,4 +1,7 @@
-﻿namespace Packages.Commands
+﻿using Packages.Microservices.Data;
+using Packages.Microservices.Messages;
+
+namespace Packages.Microservices.Domain
 {
     public class Subscription : IStorable, IReceivable
     {

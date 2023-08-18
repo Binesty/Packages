@@ -1,4 +1,4 @@
-﻿namespace Packages.Commands
+﻿namespace Packages.Microservices
 {
     public class Contract
     {

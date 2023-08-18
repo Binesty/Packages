@@ -2,7 +2,7 @@ using Microservice.Domain;
 using Microservice.Domain.Commands;
 using Microservice.Domain.Replications;
 using Microsoft.Extensions.Options;
-using Packages.Commands;
+using Packages.Microservices;
 
 namespace Microservice
 {

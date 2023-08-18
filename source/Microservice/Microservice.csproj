@@ -14,6 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Packages.Commands\Packages.Commands.csproj" />
+    <ProjectReference Include="..\Packages.Microservices\Packages.Microservices.csproj" />
   </ItemGroup>
 </Project>

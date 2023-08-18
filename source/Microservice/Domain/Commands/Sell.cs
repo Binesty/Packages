@@ -1,4 +1,4 @@
-﻿using Packages.Commands;
+﻿using Packages.Microservices.Domain;
 
 namespace Microservice.Domain.Commands
 {

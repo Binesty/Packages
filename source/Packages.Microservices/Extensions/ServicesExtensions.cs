@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Packages.Commands.Services;
+using Packages.Microservices.Services;
 
-namespace Packages.Commands.Extensions
+namespace Packages.Microservices.Extensions
 {
     public static class ServicesExtension
     {
-        private static string? _vaultToken = "hvs.6wgRqlgOj9aQUqVeDQTyT6Nv";
+        private static string? _vaultToken = "hvs.NEEecyuKLrRAb09LeX8dby6J";
         private static string? _vaultAddress = "http://vault.binesty.net";
         private static string? _catalogsAddress = "http://api-catalogs.binesty.net";
 

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Packages.Commands
+namespace Packages.Microservices.Extensions
 {
     public static class OptionsFluentValidationExtensions
     {

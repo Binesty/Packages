@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
+using Packages.Microservices.Domain;
 
-namespace Packages.Commands
+namespace Packages.Microservices
 {
     public static class Microservice<TContext> where TContext : Context
     {

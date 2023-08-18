@@ -1,9 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
-using Packages.Commands.Services;
+using Packages.Microservices.Data;
+using Packages.Microservices.Domain;
+using Packages.Microservices.Messages;
+using Packages.Microservices.Services;
 using System.Linq.Expressions;
 using System.Text.Json;
 
-namespace Packages.Commands
+namespace Packages.Microservices
 {
     public sealed class Operator<TContext> where TContext : Context
     {

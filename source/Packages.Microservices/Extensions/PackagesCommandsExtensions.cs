@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Packages.Commands.Services;
+using Packages.Microservices.Services;
 
-namespace Packages.Commands.Extensions
+namespace Packages.Microservices.Extensions
 {
-    public static class PackagesCommandsExtensions
+    public static class PackagesMicroservicesExtensions
     {
-        public static OptionsBuilder<Settings> AddPackagesCommands(this OptionsBuilder<Settings> optionsBuilder)
+        public static OptionsBuilder<Settings> AddPackagesMicroservices(this OptionsBuilder<Settings> optionsBuilder)
         {
             optionsBuilder.Services.AddSingleton<VaultServices>();
             optionsBuilder.Services.AddSingleton<CatalogsServices>();

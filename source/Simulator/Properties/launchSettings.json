@@ -9,7 +9,7 @@
             {
                 "DOTNET_ENVIRONMENT": "Development",
                 "ENVIRONMENT": "development",
-                "VAULT_TOKEN": "hvs.6wgRqlgOj9aQUqVeDQTyT6Nv",
+                "VAULT_TOKEN": "hvs.NEEecyuKLrRAb09LeX8dby6J",
                 "VAULT_ADDRESS": "http://vault.binesty.net"
             }
         }

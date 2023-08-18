@@ -1,10 +1,10 @@
 ﻿# Vault API
-@vault_token = hvs.6wgRqlgOj9aQUqVeDQTyT6Nv
+@vault_token = hvs.NEEecyuKLrRAb09LeX8dby6J
 @vault_address = http://vault.binesty.net
 @version = v1
 @engine = development
 
-GET {{vault_address}}/{{version}}/{{engine}}/packages-commands
+GET {{vault_address}}/{{version}}/{{engine}}/packages-microservices
 X-Vault-Token: {{vault_token}}
 
 # Catalog API

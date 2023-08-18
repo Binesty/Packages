@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 
-namespace Packages.Commands.Services
+namespace Packages.Microservices.Services
 {
     public class CatalogsServices
     {

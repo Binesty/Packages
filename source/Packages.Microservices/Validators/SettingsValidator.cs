@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace Packages.Commands
+namespace Packages.Microservices.Validators
 {
     public class SettingsValidator : AbstractValidator<Settings>
     {

@@ -1,4 +1,6 @@
-﻿namespace Packages.Commands
+﻿using Packages.Microservices.Messages;
+
+namespace Packages.Microservices.Domain
 {
     public class Replication : IReceivable
     {
