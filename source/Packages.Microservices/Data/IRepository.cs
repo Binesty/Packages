@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Packages.Commands
+namespace Packages.Microservices.Data
 {
     internal interface IRepository
     {

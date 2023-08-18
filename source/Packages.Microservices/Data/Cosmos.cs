@@ -1,9 +1,11 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
+using Packages.Microservices.Domain;
+using Packages.Microservices.Messages;
 using System.Linq.Expressions;
 
-namespace Packages.Commands
+namespace Packages.Microservices.Data
 {
     internal sealed class Cosmos<TContext> : IRepository where TContext : Context
     {

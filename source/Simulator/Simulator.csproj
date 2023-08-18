@@ -13,6 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Microservice\Microservice.csproj" />
-    <ProjectReference Include="..\Packages.Commands\Packages.Commands.csproj" />
+    <ProjectReference Include="..\Packages.Microservices\Packages.Microservices.csproj" />
   </ItemGroup>
 </Project>

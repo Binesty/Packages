@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
+using Packages.Microservices.Domain;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Dynamic;
 using System.Text;
 using System.Text.Json;
 
-namespace Packages.Commands
+namespace Packages.Microservices.Messages
 {
     internal class Broker<TContext> where TContext : Context
     {

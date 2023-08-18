@@ -1,12 +1,12 @@
 ﻿using System.Net.Http.Json;
 
-namespace Packages.Commands.Services
+namespace Packages.Microservices.Services
 {
     public class VaultServices
     {
         private readonly HttpClient _httpClient;
         private const string secretVersion = "v1";
-        private const string secretPath = "packages-commands";
+        private const string secretPath = "packages-microservices";
 
         public VaultServices(HttpClient httpClient)
         {

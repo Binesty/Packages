@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Packages.Commands", "source\Packages.Commands\Packages.Commands.csproj", "{52DD57BE-4345-46CA-903C-D7AC6F92C97D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Packages.Microservices", "source\Packages.Microservices\Packages.Microservices.csproj", "{52DD57BE-4345-46CA-903C-D7AC6F92C97D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C-CF93-40C8-9023-D27153E8CA44}"
 	ProjectSection(SolutionItems) = preProject

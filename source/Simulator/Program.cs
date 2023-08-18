@@ -1,5 +1,5 @@
-using Packages.Commands;
-using Packages.Commands.Extensions;
+using Packages.Microservices;
+using Packages.Microservices.Extensions;
 
 namespace Simulator
 {
@@ -14,7 +14,7 @@ namespace Simulator
 
                                  services.AddOptions<Settings>()
                                          .BindConfiguration(Settings.SectionName)
-                                         .AddPackagesCommands();
+                                         .AddPackagesMicroservices();
                              })
                             .Build();
 
