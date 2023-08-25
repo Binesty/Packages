@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Description>Package to create microservices on environment binesty</Description>
         <Copyright>Binesty</Copyright>
-        <PackageIcon>Icon.ico</PackageIcon>
+        <PackageIcon>Icon.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <AssemblyName>Binesty.$(MSBuildProjectName)</AssemblyName>
         <Title>Binesty Packages Microservices</Title>
@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\..\Icon.ico">
+        <None Include="..\..\Icon.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
