@@ -10,7 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C
 		.dockerignore = .dockerignore
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
-		Icon.ico = Icon.ico
+		Icon.png = Icon.png
 		nuget.config = nuget.config
 		README.md = README.md
 	EndProjectSection
