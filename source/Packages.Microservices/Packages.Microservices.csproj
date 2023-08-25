@@ -4,11 +4,14 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Description>Binesty Package to create Microservices</Description>
+        <Description>Package to create microservices on environment binesty</Description>
         <Copyright>Binesty</Copyright>
-        <PackageIcon>Icon.png</PackageIcon>
+        <PackageIcon>Icon.ico</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <AssemblyName>Binesty.$(MSBuildProjectName)</AssemblyName>
+        <Title>Binesty Packages Microservices</Title>
+        <Company>Binesty</Company>
+        <Authors>Binesty Enterprise</Authors>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\..\Icon.png">
+        <None Include="..\..\Icon.ico">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
