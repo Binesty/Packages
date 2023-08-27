@@ -9,7 +9,8 @@
                 "DOTNET_ENVIRONMENT": "Development",
                 "ENVIRONMENT": "development",
                 "VAULT_TOKEN": "hvs.NEEecyuKLrRAb09LeX8dby6J",
-                "VAULT_ADDRESS": "http://vault.binesty.net"
+                "VAULT_ADDRESS": "http://vault.binesty.net",
+                "CATALOG_ADDRESS": "http://api-catalogs.binesty.net"
             },
             "dotnetRunMessages": true
         }
