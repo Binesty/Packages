@@ -1,18 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-Simulator-74e9d319-bc43-4ecc-b867-45dc01cf14ca</UserSecretsId>
+    <ImplicitUsings>enable</ImplicitUsings>    
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
+    <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microservice\Microservice.csproj" />
     <ProjectReference Include="..\Packages.Microservices\Packages.Microservices.csproj" />
   </ItemGroup>
 </Project>

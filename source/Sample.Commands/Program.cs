@@ -1,7 +1,7 @@
 using Packages.Microservices;
 using Packages.Microservices.Extensions;
 
-namespace Microservice
+namespace Sample.Commands
 {
     public class Program
     {

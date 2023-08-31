@@ -1,9 +1,30 @@
 <mxfile host="65bd71144e">
-    <diagram id="kZRx7oboH-5Hw8QYMRkv" name="process-bulk-request">
-        <mxGraphModel dx="1713" dy="784" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <diagram id="kZRx7oboH-5Hw8QYMRkv" name="scope">
+        <mxGraphModel dx="2384" dy="922" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
+                <mxCell id="10" value="Microservices" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="226" y="103" width="684" height="262" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="Transactions" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="280" y="160" width="154" height="173" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="Search" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="493" y="160" width="154" height="176" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="Analisys" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="697" y="160" width="154" height="178" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Views" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="510" y="245" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="Jobs" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="714" y="242" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Views" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="297" y="245" width="120" height="60" as="geometry"/>
+                </mxCell>
             </root>
         </mxGraphModel>
     </diagram>

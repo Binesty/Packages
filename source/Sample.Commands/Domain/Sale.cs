@@ -1,6 +1,6 @@
 ﻿using Packages.Microservices.Domain;
 
-namespace Microservice.Domain
+namespace Sample.Commands.Domain
 {
     public class Sale : Context
     {

@@ -1,10 +1,10 @@
-using Microservice.Domain;
-using Microservice.Domain.Commands;
-using Microservice.Domain.Replications;
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
+using Sample.Commands.Domain;
+using Sample.Commands.Domain.Commands;
+using Sample.Commands.Domain.Replications;
 
-namespace Microservice
+namespace Sample.Commands
 {
     public class Worker : BackgroundService
     {
@@ -19,11 +19,11 @@ namespace Microservice
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Microservices in execution..");
-            await Microservice<Sale>.Configure(_settings)
-                                    .Execute<Sell>()
-                                    .Apply<CarEndManufacturing>()
-                                    .Start();
+            _logger.LogInformation("Sample Commands in execution..");
+            await Commands<Sale>.Configure(_settings)
+                                .Execute<Sell>()
+                                .Apply<CarEndManufacturing>()
+                                .Start();
 
             Console.ReadLine();
         }

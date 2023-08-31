@@ -8,7 +8,18 @@ using System.Text.Json;
 
 namespace Packages.Microservices
 {
-    public sealed class Operator<TContext> where TContext : Context
+    public static class Commands<TContext> where TContext : Context
+    {
+        private static CommandsOperator<TContext> _operator = null!;
+
+        public static CommandsOperator<TContext> Configure(IOptions<Settings> settings)
+        {
+            _operator ??= new CommandsOperator<TContext>(settings);
+            return _operator;
+        }
+    }
+
+    public sealed class CommandsOperator<TContext> where TContext : Context
     {
         private readonly IOptions<Settings> _settings = null!;
         private readonly IRepository _repository = null!;
@@ -21,7 +32,7 @@ namespace Packages.Microservices
         private readonly Queue<TContext> _queueContextsCommands = new();
         private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
 
-        internal Operator(IOptions<Settings> settings)
+        internal CommandsOperator(IOptions<Settings> settings)
         {
             _settings = settings;
 
@@ -68,7 +79,7 @@ namespace Packages.Microservices
             }
         }
 
-        public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
+        public CommandsOperator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
         {
             var command = Commands.FirstOrDefault(find => find.FullName == typeof(TCommand).FullName);
             if (command is null)
@@ -77,7 +88,7 @@ namespace Packages.Microservices
             return this;
         }
 
-        public Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
+        public CommandsOperator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
         {
             var replication = Replications.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
             if (replication is null)

@@ -1,15 +1,15 @@
-using Microservice.Domain;
-using Microservice.Domain.Commands;
-using Microservice.Domain.Replications;
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
 using Packages.Microservices.Domain;
 using Packages.Microservices.Messages;
 using RabbitMQ.Client;
+using Sample.Commands.Domain;
+using Sample.Commands.Domain.Commands;
+using Sample.Commands.Domain.Replications;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace Simulator
+namespace Data.Generator
 {
     public class Worker : BackgroundService
     {
@@ -40,7 +40,7 @@ namespace Simulator
                 await Task.Run(() =>
                 {
                     Console.Clear();
-                    _logger.LogInformation("Simulator start");
+                    _logger.LogInformation("Data Generator start");
 
                     DeleteQueues();
 
@@ -77,7 +77,7 @@ namespace Simulator
             _logger.LogInformation("Get Secrets...");
             var secrets = Secret.Loaded;
 
-            _logger.LogInformation("Simulator to send messages to {microservice}", _brokerCommunicationConfigurationMicroservice.QueueName);
+            _logger.LogInformation("Data Generator to send messages to {microservice}", _brokerCommunicationConfigurationMicroservice.QueueName);
 
             _connectionFactory = new()
             {
@@ -85,7 +85,7 @@ namespace Simulator
                 UserName = secrets.RabbitUser,
                 Password = secrets.RabbitPassword,
                 Port = secrets.RabbitPort,
-                ClientProvidedName = "simulator",
+                ClientProvidedName = "data-generator",
                 RequestedHeartbeat = TimeSpan.FromMicroseconds(requestedHeartbeatSeconds)
             };
 
@@ -166,7 +166,7 @@ namespace Simulator
             Message message = new()
             {
                 Id = Guid.NewGuid().ToString(),
-                Owner = "simulator",
+                Owner = "data-generator",
                 Type = MessageType.Command,
                 Destination = _brokerCommunicationConfigurationMicroservice.QueueName,
                 Operation = nameof(Sell),

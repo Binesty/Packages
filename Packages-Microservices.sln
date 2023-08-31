@@ -15,11 +15,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{5A53546C
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microservice", "source\Microservice\Microservice.csproj", "{C91CF21E-6132-4B02-B5BA-F943DF139B3E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.Commands", "source\Sample.Commands\Sample.Commands.csproj", "{C91CF21E-6132-4B02-B5BA-F943DF139B3E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{420ED303-7ACA-4373-ACC6-CE00977A6F6A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulator", "source\Simulator\Simulator.csproj", "{65F5CD7D-72C7-4343-8FBD-163F6342C351}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Data.Generator", "source\Data.Generator\Data.Generator.csproj", "{65F5CD7D-72C7-4343-8FBD-163F6342C351}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Actions", "{DEB85F8B-811B-4810-ACF7-495D46DA374D}"
 	ProjectSection(SolutionItems) = preProject

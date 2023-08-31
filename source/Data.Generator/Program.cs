@@ -1,7 +1,7 @@
 using Packages.Microservices;
 using Packages.Microservices.Extensions;
 
-namespace Simulator
+namespace Data.Generator
 {
     public class Program
     {
