@@ -39,4 +39,8 @@
         <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Jobs\" />
+    </ItemGroup>
+
 </Project>

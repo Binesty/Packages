@@ -1,7 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
-using Packages.Microservices.Domain;
+using Packages.Microservices.Commands;
 using Packages.Microservices.Messages;
 using System.Linq.Expressions;
 

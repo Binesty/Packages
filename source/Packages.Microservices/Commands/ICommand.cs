@@ -1,4 +1,4 @@
-﻿namespace Packages.Microservices.Domain
+﻿namespace Packages.Microservices.Commands
 {
     public interface ICommand<TContext> where TContext : Context
     {

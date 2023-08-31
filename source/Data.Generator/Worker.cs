@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
-using Packages.Microservices.Domain;
+using Packages.Microservices.Commands;
 using Packages.Microservices.Messages;
 using RabbitMQ.Client;
 using Sample.Commands.Domain;

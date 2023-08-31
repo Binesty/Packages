@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Packages.Microservices.Domain
+namespace Packages.Microservices.Commands
 {
     public interface IReplicable<TContext> where TContext : Context
     {

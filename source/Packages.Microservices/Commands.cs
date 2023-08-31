@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
+using Packages.Microservices.Commands;
 using Packages.Microservices.Data;
-using Packages.Microservices.Domain;
 using Packages.Microservices.Messages;
 using Packages.Microservices.Services;
 using System.Linq.Expressions;
