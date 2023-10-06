@@ -1,8 +1,8 @@
-﻿using Packages.Microservices.Commands;
+﻿using Packages.Microservices.Domain;
 using System.Linq.Expressions;
 using System.Text.Json;
 
-namespace Sample.Commands.Domain.Replications
+namespace Sample.Commands.Replications
 {
     public class CarEndManufacturing : IReplicable<Sale>
     {

@@ -1,6 +1,6 @@
 ﻿using Packages.Microservices.Commands;
 
-namespace Sample.Commands.Domain.Commands
+namespace Sample.Commands.Commands
 {
     public class Sell : ICommand<Sale>
     {

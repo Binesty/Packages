@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
-using Sample.Commands.Domain;
-using Sample.Commands.Domain.Commands;
-using Sample.Commands.Domain.Replications;
+using Packages.Microservices.Commands;
+using Sample.Commands.Commands;
+using Sample.Commands.Replications;
+using System.Reflection;
 
 namespace Sample.Commands
 {
@@ -19,7 +20,9 @@ namespace Sample.Commands
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation($"Version: {Assembly.GetExecutingAssembly().GetName().Version}");
             _logger.LogInformation("Sample Commands in execution..");
+
             await Commands<Sale>.Configure(_settings)
                                 .Execute<Sell>()
                                 .Apply<CarEndManufacturing>()

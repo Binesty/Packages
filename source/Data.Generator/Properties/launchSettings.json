@@ -1,7 +1,7 @@
 ﻿{
     "profiles":
     {
-        "Data-Generator":
+        "Data.Generator":
         {
             "commandName": "Project",
             "dotnetRunMessages": true,

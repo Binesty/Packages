@@ -1,25 +1,34 @@
 ﻿using Microsoft.Extensions.Options;
-using Packages.Microservices.Commands;
 using Packages.Microservices.Data;
+using Packages.Microservices.Domain;
 using Packages.Microservices.Messages;
 using Packages.Microservices.Services;
 using System.Linq.Expressions;
 using System.Text.Json;
 
-namespace Packages.Microservices
+namespace Packages.Microservices.Commands
 {
     public static class Commands<TContext> where TContext : Context
     {
-        private static CommandsOperator<TContext> _operator = null!;
+        private static Operator<TContext> _operator = null!;
 
-        public static CommandsOperator<TContext> Configure(IOptions<Settings> settings)
+        public static Operator<TContext> Configure(IOptions<Settings> settings)
         {
-            _operator ??= new CommandsOperator<TContext>(settings);
+            _operator ??= new Operator<TContext>(settings);
             return _operator;
         }
     }
 
-    public sealed class CommandsOperator<TContext> where TContext : Context
+    public interface ICommand<TContext> where TContext : Context
+    {
+        string Description { get; }
+
+        TContext? Execute(TContext context);
+
+        bool CanExecute(TContext context);
+    }
+
+    public sealed class Operator<TContext> where TContext : Context
     {
         private readonly IOptions<Settings> _settings = null!;
         private readonly IRepository _repository = null!;
@@ -32,7 +41,7 @@ namespace Packages.Microservices
         private readonly Queue<TContext> _queueContextsCommands = new();
         private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
 
-        internal CommandsOperator(IOptions<Settings> settings)
+        internal Operator(IOptions<Settings> settings)
         {
             _settings = settings;
 
@@ -79,7 +88,7 @@ namespace Packages.Microservices
             }
         }
 
-        public CommandsOperator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
+        public Operator<TContext> Execute<TCommand>() where TCommand : ICommand<TContext>
         {
             var command = Commands.FirstOrDefault(find => find.FullName == typeof(TCommand).FullName);
             if (command is null)
@@ -88,7 +97,7 @@ namespace Packages.Microservices
             return this;
         }
 
-        public CommandsOperator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
+        public Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
         {
             var replication = Replications.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
             if (replication is null)

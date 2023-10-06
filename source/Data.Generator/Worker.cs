@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
-using Packages.Microservices.Commands;
+using Packages.Microservices.Domain;
 using Packages.Microservices.Messages;
 using RabbitMQ.Client;
-using Sample.Commands.Domain;
-using Sample.Commands.Domain.Commands;
-using Sample.Commands.Domain.Replications;
+using Sample.Commands;
+using Sample.Commands.Commands;
+using Sample.Commands.Replications;
 using System.Security.Cryptography;
 using System.Text.Json;
 

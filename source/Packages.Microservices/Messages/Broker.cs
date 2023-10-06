@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
-using Packages.Microservices.Commands;
+using Packages.Microservices.Domain;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Dynamic;

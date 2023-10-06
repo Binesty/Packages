@@ -26,6 +26,7 @@ namespace Packages.Microservices.Data
     public enum StorableType
     {
         Contexts,
-        Subscriptions
+        Subscriptions,
+        Source
     }
 }
