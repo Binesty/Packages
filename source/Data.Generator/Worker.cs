@@ -5,7 +5,7 @@ using Packages.Microservices.Messages;
 using RabbitMQ.Client;
 using Sample.Commands;
 using Sample.Commands.Commands;
-using Sample.Commands.Replications;
+using Sample.Commands.Propagations;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -49,7 +49,7 @@ namespace Data.Generator
 
                     if (dataRead?.ToLower() == "r")
                     {
-                        SendReplication();
+                        SendPropagation();
                         return;
                     }
 
@@ -93,7 +93,7 @@ namespace Data.Generator
                                          .CreateModel();
 
             _logger.LogInformation("Clean all queues");
-            CreateQueuesReplications();
+            CreateQueuesPropagations();
         }
 
         private void DeleteQueues()
@@ -103,9 +103,9 @@ namespace Data.Generator
             _channel.QueuePurge(_brokerCommunicationConfigurationManufacturing.QueueName);
         }
 
-        private void SendReplication()
+        private void SendPropagation()
         {
-            Replication replication = new()
+            Propagation propagation = new()
             {
                 Id = Guid.NewGuid().ToString(),
                 Content = new
@@ -119,11 +119,11 @@ namespace Data.Generator
             {
                 Id = Guid.NewGuid().ToString(),
                 Owner = _brokerCommunicationConfigurationManufacturing.QueueName,
-                Type = MessageType.Replication,
+                Type = MessageType.Propagation,
                 Destination = _brokerCommunicationConfigurationMicroservice.QueueName,
                 Operation = nameof(CarEndManufacturing),
                 Date = DateTime.UtcNow,
-                Content = JsonSerializer.Serialize(replication)
+                Content = JsonSerializer.Serialize(propagation)
             };
 
             var headers = new Dictionary<string, object>
@@ -141,10 +141,10 @@ namespace Data.Generator
                                   _brokerCommunicationConfigurationMicroservice.QueueName,
                                   _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
-            Console.WriteLine($"Replication from {_brokerCommunicationConfigurationManufacturing.QueueName}: {replication.Id}");
+            Console.WriteLine($"Propagation from {_brokerCommunicationConfigurationManufacturing.QueueName}: {propagation.Id}");
         }
 
-        private void CreateQueuesReplications()
+        private void CreateQueuesPropagations()
         {
             _channel.QueueDeclareNoWait(_brokerCommunicationConfigurationCommunication.QueueName,
             durable: true, exclusive: false,

@@ -18,7 +18,7 @@
 
         public List<string> Commands { get; set; } = new();
 
-        public List<string> Replications { get; set; } = new();
+        public List<string> Propagations { get; set; } = new();
 
         public List<string> Subscriptions { get; set; } = new();
     }

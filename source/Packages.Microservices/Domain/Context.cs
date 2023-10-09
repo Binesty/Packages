@@ -15,7 +15,7 @@ namespace Packages.Microservices.Domain
 
         public string? LastOperation { get; set; }
 
-        public string? LastReplicationId { get; set; }
+        public string? LastPropagationId { get; set; }
 
         public ulong DeliveryTag { get; set; }
 

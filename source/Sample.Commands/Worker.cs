@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Packages.Microservices;
 using Packages.Microservices.Commands;
 using Sample.Commands.Commands;
-using Sample.Commands.Replications;
+using Sample.Commands.Propagations;
 using System.Reflection;
 
 namespace Sample.Commands

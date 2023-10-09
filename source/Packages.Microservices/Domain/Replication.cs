@@ -2,7 +2,7 @@
 
 namespace Packages.Microservices.Domain
 {
-    public class Replication : IReceivable
+    public class Propagation : IReceivable
     {
         public string? Id { get; set; }
 

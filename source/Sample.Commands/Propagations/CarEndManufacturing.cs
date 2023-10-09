@@ -2,16 +2,16 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 
-namespace Sample.Commands.Replications
+namespace Sample.Commands.Propagations
 {
-    public class CarEndManufacturing : IReplicable<Sale>
+    public class CarEndManufacturing : IPropagable<Sale>
     {
-        public Expression<Func<Sale, bool>> InContexts(Replication replication)
+        public Expression<Func<Sale, bool>> InContexts(Propagation propagation)
         {
-            if (replication is null)
+            if (propagation is null)
                 return sale => false;
 
-            Filter filter = JsonSerializer.Deserialize<Filter>(replication?.Content);
+            Filter filter = JsonSerializer.Deserialize<Filter>(propagation?.Content);
             if (filter is null)
                 return sale => false;
 
@@ -19,12 +19,12 @@ namespace Sample.Commands.Replications
                                                 car.Name == filter.Name);
         }
 
-        public Sale Apply(Sale context, Replication replication)
+        public Sale Apply(Sale context, Propagation propagation)
         {
-            if (replication is null)
+            if (propagation is null)
                 return context;
 
-            Filter filter = JsonSerializer.Deserialize<Filter>(replication?.Content);
+            Filter filter = JsonSerializer.Deserialize<Filter>(propagation?.Content);
             if (filter is null)
                 return context;
 
@@ -33,12 +33,12 @@ namespace Sample.Commands.Replications
             return context;
         }
 
-        public bool CanApply(Replication replication)
+        public bool CanApply(Propagation propagation)
         {
-            if (replication is null)
+            if (propagation is null)
                 return false;
 
-            Filter filter = JsonSerializer.Deserialize<Filter>(replication?.Content);
+            Filter filter = JsonSerializer.Deserialize<Filter>(propagation?.Content);
             if (filter is null)
                 return false;
 

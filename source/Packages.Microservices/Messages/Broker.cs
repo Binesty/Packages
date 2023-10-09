@@ -24,8 +24,8 @@ namespace Packages.Microservices.Messages
         private IModel _channelEntry = null!;
         private EventingBasicConsumer _eventingBasicConsumerEntry = null!;
 
-        private ConnectionFactory _connectionFactoryReplication = null!;
-        private IModel _channelReplication = null!;
+        private ConnectionFactory _connectionFactoryPropagation = null!;
+        private IModel _channelPropagation = null!;
 
         private ConnectionFactory _connectionFactoryErrors = null!;
         private IModel _channelErrors = null!;
@@ -47,7 +47,7 @@ namespace Packages.Microservices.Messages
         public void Start()
         {
             CreateErrorsChannel();
-            CreateReplicationChannel();
+            CreatePropagationChannel();
             CreateEntryChannel();
             UpdateBindingSubscription(_subscriptions);
         }
@@ -61,8 +61,8 @@ namespace Packages.Microservices.Messages
 
             foreach (var subscription in _subscriptions)
             {
-                _channelReplication.QueueBindNoWait(subscription.Subscriber,
-                                                    _brokerCommunicationConfiguration.ExchangeReplication,
+                _channelPropagation.QueueBindNoWait(subscription.Subscriber,
+                                                    _brokerCommunicationConfiguration.ExchangePropagation,
                                                     _brokerCommunicationConfiguration.QueueName,
                                                     arguments: new Dictionary<string, object>() { { _brokerCommunicationConfiguration.Header, subscription.Subscriber } });
             }
@@ -101,30 +101,30 @@ namespace Packages.Microservices.Messages
                                            _brokerCommunicationConfiguration.ExchangeErrors, string.Empty, arguments: null);
         }
 
-        private void CreateReplicationChannel()
+        private void CreatePropagationChannel()
         {
-            if (_connectionFactoryReplication is not null)
+            if (_connectionFactoryPropagation is not null)
             {
-                if (_channelReplication.IsOpen)
-                    _channelReplication.Close();
+                if (_channelPropagation.IsOpen)
+                    _channelPropagation.Close();
             }
 
-            _connectionFactoryReplication = new()
+            _connectionFactoryPropagation = new()
             {
                 HostName = Secret.Loaded.RabbitHost,
                 UserName = Secret.Loaded.RabbitUser,
                 Password = Secret.Loaded.RabbitPassword,
                 Port = Secret.Loaded.RabbitPort,
-                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeReplication}",
+                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangePropagation}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
             };
 
-            _channelReplication = _connectionFactoryReplication.CreateConnection()
+            _channelPropagation = _connectionFactoryPropagation.CreateConnection()
                                                                .CreateModel();
 
-            _channelReplication.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeReplication,
+            _channelPropagation.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangePropagation,
                                                       ExchangeType.Headers, durable: true, autoDelete: false);
 
             UpdateBindingSubscription(_subscriptions);
@@ -209,10 +209,10 @@ namespace Packages.Microservices.Messages
                                        null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
-        internal void SendReplications(TContext context)
+        internal void SendPropagations(TContext context)
         {
-            if (_channelReplication.IsClosed)
-                CreateReplicationChannel();
+            if (_channelPropagation.IsClosed)
+                CreatePropagationChannel();
 
             if (context is null)
                 return;
@@ -225,18 +225,18 @@ namespace Packages.Microservices.Messages
                 {
                     Id = Guid.NewGuid().ToString(),
                     Owner = _brokerCommunicationConfiguration.QueueName,
-                    Type = MessageType.Replication,
+                    Type = MessageType.Propagation,
                     Destination = subscription.Subscriber,
-                    Operation = nameof(Replication),
+                    Operation = nameof(Propagation),
                     Date = DateTime.UtcNow,
                     Content = JsonSerializer.Serialize(replicaton)
                 };
 
-                Replicate(message);
+                Propagate(message);
             });
         }
 
-        private void Replicate(Message message)
+        private void Propagate(Message message)
         {
             var headers = new Dictionary<string, object>
             {
@@ -247,14 +247,14 @@ namespace Packages.Microservices.Messages
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangeReplication,
+            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangePropagation,
                                        message.Destination, _basicProperties,
                                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
 
         private static dynamic FilterFieldsContext(TContext context, Subscription subscription)
         {
-            var replication = new ExpandoObject();
+            var propagation = new ExpandoObject();
 
             foreach (var field in subscription.Fields)
             {
@@ -264,11 +264,11 @@ namespace Packages.Microservices.Messages
                 if (property is null)
                     continue;
 
-                replication.TryAdd(field, property.GetValue(context));
+                propagation.TryAdd(field, property.GetValue(context));
             }
 
-            replication.TryAdd(nameof(Replication.Id), Guid.NewGuid().ToString());
-            return replication;
+            propagation.TryAdd(nameof(Propagation.Id), Guid.NewGuid().ToString());
+            return propagation;
         }
     }
 
@@ -282,7 +282,7 @@ namespace Packages.Microservices.Messages
                 Header = "microservice",
                 HeaderValue = microservice,
                 ExchangeEntry = $"{type}:{microservice}:entry",
-                ExchangeReplication = $"{type}:{microservice}:replications",
+                ExchangePropagation = $"{type}:{microservice}:propagations",
                 ExchangeErrors = $"{type}:errors",
                 QueueName = $"{type}:{microservice}",
                 QueueErrors = $"{type}:errors"
@@ -296,7 +296,7 @@ namespace Packages.Microservices.Messages
             public string HeaderValue { get; set; }
 
             public string ExchangeEntry { get; set; }
-            public string ExchangeReplication { get; set; }
+            public string ExchangePropagation { get; set; }
 
             public string ExchangeErrors { get; set; }
 

@@ -19,6 +19,11 @@ namespace Packages.Microservices.Jobs
         }
     }
 
+    public interface IJob<TContext> where TContext : Context
+    {
+        string Description { get; }
+    }
+
     public sealed class Operator<TContext> where TContext : Context
     {
         private readonly IOptions<Settings> _settings = null!;
@@ -26,6 +31,7 @@ namespace Packages.Microservices.Jobs
         private readonly Broker<TContext> _broker;
         private readonly string _instance = null!;
 
+        private readonly IList<Type> Jobs = new List<Type>();
         private readonly IList<Type> Replications = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
@@ -75,7 +81,16 @@ namespace Packages.Microservices.Jobs
             }
         }
 
-        public Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
+        public Operator<TContext> Schedule<TJob>() where TJob : IJob<TContext>
+        {
+            var job = Jobs.FirstOrDefault(find => find.FullName == typeof(TJob).FullName);
+            if (job is null)
+                Jobs.Add(typeof(TJob));
+
+            return this;
+        }
+
+        public Operator<TContext> Apply<TReplicable>() where TReplicable : IPropagable<TContext>
         {
             var replication = Replications.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
             if (replication is null)
@@ -98,7 +113,7 @@ namespace Packages.Microservices.Jobs
 
         private async Task<bool> ApplyReplication(Message message)
         {
-            var replication = JsonSerializer.Deserialize<Replication>(message.Content);
+            var replication = JsonSerializer.Deserialize<Propagation>(message.Content);
             if (replication == null)
                 return false;
 
@@ -112,8 +127,8 @@ namespace Packages.Microservices.Jobs
             if (replicate is null)
                 return false;
 
-            var queryImplemented = ((IReplicable<TContext>)replicate).InContexts(replication);
-            Expression<Func<TContext, bool>> filterIdReplications = context => context.LastReplicationId != replication.Id;
+            var queryImplemented = ((IPropagable<TContext>)replicate).InContexts(replication);
+            Expression<Func<TContext, bool>> filterIdReplications = context => context.LastPropagationId != replication.Id;
 
             var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, filterIdReplications);
             if (contexts.Any())
@@ -121,15 +136,15 @@ namespace Packages.Microservices.Jobs
                 List<TContext> contextsToReplicate = new();
                 Parallel.ForEach(contexts, context =>
                 {
-                    if (!((IReplicable<TContext>)replicate).CanApply(replication))
+                    if (!((IPropagable<TContext>)replicate).CanApply(replication))
                         return;
 
-                    var change = ((IReplicable<TContext>)replicate).Apply(context, replication);
+                    var change = ((IPropagable<TContext>)replicate).Apply(context, replication);
                     if (change is null)
                         return;
 
                     change.StorableStatus = StorableStatus.Changed;
-                    change.LastReplicationId = replication.Id;
+                    change.LastPropagationId = replication.Id;
                     change.LastOperation = replicationType.Name;
 
                     contextsToReplicate.Add(change);
@@ -191,7 +206,7 @@ namespace Packages.Microservices.Jobs
             }
 
             foreach (var replication in Replications)
-                contract.Replications.Add(replication.Name);
+                contract.Propagations.Add(replication.Name);
 
             foreach (var subscription in Subscriptions)
                 contract.Subscriptions.Add(subscription.Subscriber);

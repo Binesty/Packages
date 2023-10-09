@@ -170,7 +170,7 @@ namespace Packages.Microservices.Data
                 _broker.ConfirmDelivery(result.Resource.DeliveryTag);
 
                 if (result.Resource is TContext context)
-                    _broker.SendReplications(context);
+                    _broker.SendPropagations(context);
 
                 return (result, default);
             }

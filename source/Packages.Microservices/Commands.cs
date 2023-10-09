@@ -36,7 +36,7 @@ namespace Packages.Microservices.Commands
         private readonly string _instance = null!;
 
         private readonly IList<Type> Commands = new List<Type>();
-        private readonly IList<Type> Replications = new List<Type>();
+        private readonly IList<Type> Propagations = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
         private readonly Queue<TContext> _queueContextsCommands = new();
         private readonly PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
@@ -72,7 +72,7 @@ namespace Packages.Microservices.Commands
                 {
                     MessageType.Command => ExecuteCommand(argument.Message),
                     MessageType.Subscription => await RegisterSubscription(argument.Message),
-                    MessageType.Replication => await ApplyReplication(argument.Message),
+                    MessageType.Propagation => await ApplyPropagation(argument.Message),
 
                     _ => false
                 };
@@ -97,11 +97,11 @@ namespace Packages.Microservices.Commands
             return this;
         }
 
-        public Operator<TContext> Apply<TReplicable>() where TReplicable : IReplicable<TContext>
+        public Operator<TContext> Apply<TReplicable>() where TReplicable : IPropagable<TContext>
         {
-            var replication = Replications.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
-            if (replication is null)
-                Replications.Add(typeof(TReplicable));
+            var propagation = Propagations.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
+            if (propagation is null)
+                Propagations.Add(typeof(TReplicable));
 
             return this;
         }
@@ -146,47 +146,47 @@ namespace Packages.Microservices.Commands
             return contexts;
         }
 
-        private async Task<bool> ApplyReplication(Message message)
+        private async Task<bool> ApplyPropagation(Message message)
         {
-            var replication = JsonSerializer.Deserialize<Replication>(message.Content);
-            if (replication == null)
+            var propagation = JsonSerializer.Deserialize<Propagation>(message.Content);
+            if (propagation == null)
                 return false;
 
-            replication.DeliveryTag = message.DeliveryTag;
+            propagation.DeliveryTag = message.DeliveryTag;
 
-            var replicationType = Replications.FirstOrDefault(item => item.Name == message.Operation);
-            if (replicationType is null)
+            var propagationType = Propagations.FirstOrDefault(item => item.Name == message.Operation);
+            if (propagationType is null)
                 return false;
 
-            var replicate = Activator.CreateInstance(replicationType);
-            if (replicate is null)
+            var propagate = Activator.CreateInstance(propagationType);
+            if (propagate is null)
                 return false;
 
-            var queryImplemented = ((IReplicable<TContext>)replicate).InContexts(replication);
-            Expression<Func<TContext, bool>> filterIdReplications = context => context.LastReplicationId != replication.Id;
+            var queryImplemented = ((IPropagable<TContext>)propagate).InContexts(propagation);
+            Expression<Func<TContext, bool>> filterIdPropagations = context => context.LastPropagationId != propagation.Id;
 
-            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, filterIdReplications);
+            var contexts = await _repository.Fetch(queryImplemented, StorableType.Contexts, filterIdPropagations);
             if (contexts.Any())
             {
-                List<TContext> contextsToReplicate = new();
+                List<TContext> contextsToPropagate = new();
                 Parallel.ForEach(contexts, context =>
                 {
-                    if (!((IReplicable<TContext>)replicate).CanApply(replication))
+                    if (!((IPropagable<TContext>)propagate).CanApply(propagation))
                         return;
 
-                    var change = ((IReplicable<TContext>)replicate).Apply(context, replication);
+                    var change = ((IPropagable<TContext>)propagate).Apply(context, propagation);
                     if (change is null)
                         return;
 
                     change.StorableStatus = StorableStatus.Changed;
-                    change.LastReplicationId = replication.Id;
-                    change.LastOperation = replicationType.Name;
+                    change.LastPropagationId = propagation.Id;
+                    change.LastOperation = propagationType.Name;
 
-                    contextsToReplicate.Add(change);
+                    contextsToPropagate.Add(change);
                 });
 
-                if (contextsToReplicate.Any())
-                    await _repository.BulkSave<TContext>(contextsToReplicate);
+                if (contextsToPropagate.Any())
+                    await _repository.BulkSave<TContext>(contextsToPropagate);
             }
 
             _broker.ConfirmDelivery(message.DeliveryTag);
@@ -276,8 +276,8 @@ namespace Packages.Microservices.Commands
             foreach (var command in Commands)
                 contract.Commands.Add(command.Name);
 
-            foreach (var replication in Replications)
-                contract.Replications.Add(replication.Name);
+            foreach (var propagation in Propagations)
+                contract.Propagations.Add(propagation.Name);
 
             foreach (var subscription in Subscriptions)
                 contract.Subscriptions.Add(subscription.Subscriber);

@@ -2,12 +2,12 @@
 
 namespace Packages.Microservices.Domain
 {
-    public interface IReplicable<TContext> where TContext : Context
+    public interface IPropagable<TContext> where TContext : Context
     {
-        Expression<Func<TContext, bool>> InContexts(Replication replication);
+        Expression<Func<TContext, bool>> InContexts(Propagation propagation);
 
-        TContext Apply(TContext context, Replication replication);
+        TContext Apply(TContext context, Propagation propagation);
 
-        bool CanApply(Replication replication);
+        bool CanApply(Propagation propagation);
     }
 }

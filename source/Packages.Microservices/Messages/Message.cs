@@ -25,6 +25,7 @@
     {
         None = 0,
         Command,
+        Propagation,
         Replication,
         Subscription
     }
