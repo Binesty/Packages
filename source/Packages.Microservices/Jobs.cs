@@ -11,9 +11,9 @@ namespace Packages.Microservices.Jobs
     {
         private static Operator<TContext> _operator = null!;
 
-        public static Operator<TContext> Configure(string sourceReplication, IOptions<Settings> settings)
+        public static Operator<TContext> Configure(IOptions<Settings> settings)
         {
-            _operator ??= new Operator<TContext>(settings, sourceReplication);
+            _operator ??= new Operator<TContext>(settings);
             return _operator;
         }
     }
@@ -29,15 +29,13 @@ namespace Packages.Microservices.Jobs
         private readonly IRepository _repository = null!;
         private readonly Broker<TContext> _broker;
         private readonly string _instance = null!;
-        private readonly string _sourceReplication;
 
         private readonly IList<Type> Jobs = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
-        internal Operator(IOptions<Settings> settings, string sourceReplication)
+        internal Operator(IOptions<Settings> settings)
         {
             _settings = settings;
-            _sourceReplication = sourceReplication;
 
             _instance = $"[{Guid.NewGuid().ToString()[..5].ToLower()}]";
 
@@ -106,6 +104,9 @@ namespace Packages.Microservices.Jobs
 
         private async Task<bool> ApplyReplication(Message message)
         {
+            if (message.Owner != _settings.Value.SourceReplication)
+                return false;
+
             var replication = JsonSerializer.Deserialize<TContext>(message.Content);
             if (replication == null)
                 return false;
