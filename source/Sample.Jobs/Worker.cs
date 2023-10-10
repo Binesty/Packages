@@ -24,7 +24,7 @@ namespace Sample.Jobs
                 _logger.LogInformation($"Version: {Assembly.GetExecutingAssembly().GetName().Version}");
                 _logger.LogInformation("Sample Commands in execution..");
 
-                await Jobs<Sale>.Configure(_settings)
+                await Jobs<Sale>.Configure("car-sale", _settings)
                                 .Schedule<SaleCanceled>()
                                 .Start();
 

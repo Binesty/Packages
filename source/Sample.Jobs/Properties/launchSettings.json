@@ -1,11 +1,14 @@
 ﻿{
-  "profiles": {
-    "Sample.Jobs": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
-      }
+    "profiles":
+    {
+        "Sample.Jobs":
+        {
+            "commandName": "Project",
+            "dotnetRunMessages": true,
+            "environmentVariables":
+            {
+                "DOTNET_ENVIRONMENT": "Development"
+            }
+        }
     }
-  }
 }

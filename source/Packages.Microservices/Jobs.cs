@@ -11,9 +11,9 @@ namespace Packages.Microservices.Jobs
     {
         private static Operator<TContext> _operator = null!;
 
-        public static Operator<TContext> Configure(IOptions<Settings> settings)
+        public static Operator<TContext> Configure(string sourceReplication, IOptions<Settings> settings)
         {
-            _operator ??= new Operator<TContext>(settings);
+            _operator ??= new Operator<TContext>(settings, sourceReplication);
             return _operator;
         }
     }
@@ -29,13 +29,15 @@ namespace Packages.Microservices.Jobs
         private readonly IRepository _repository = null!;
         private readonly Broker<TContext> _broker;
         private readonly string _instance = null!;
+        private readonly string _sourceReplication;
 
         private readonly IList<Type> Jobs = new List<Type>();
         private IList<Subscription> Subscriptions = new List<Subscription>();
 
-        internal Operator(IOptions<Settings> settings)
+        internal Operator(IOptions<Settings> settings, string sourceReplication)
         {
             _settings = settings;
+            _sourceReplication = sourceReplication;
 
             _instance = $"[{Guid.NewGuid().ToString()[..5].ToLower()}]";
 
@@ -88,7 +90,7 @@ namespace Packages.Microservices.Jobs
             return this;
         }
 
-        public async Task Start()
+        public Task Start()
         {
             try
             {
@@ -98,6 +100,8 @@ namespace Packages.Microservices.Jobs
             {
                 _broker.PublishError(new Message() { Content = $"Failed to Publish Contract:{exception.Message}" });
             }
+
+            return Task.FromResult(true);
         }
 
         private async Task<bool> ApplyReplication(Message message)
