@@ -97,11 +97,11 @@ namespace Packages.Microservices.Commands
             return this;
         }
 
-        public Operator<TContext> Apply<TReplicable>() where TReplicable : IPropagable<TContext>
+        public Operator<TContext> Propagate<TPropagable>() where TPropagable : IPropagable<TContext>
         {
-            var propagation = Propagations.FirstOrDefault(find => find.FullName == typeof(TReplicable).FullName);
+            var propagation = Propagations.FirstOrDefault(find => find.FullName == typeof(TPropagable).FullName);
             if (propagation is null)
-                Propagations.Add(typeof(TReplicable));
+                Propagations.Add(typeof(TPropagable));
 
             return this;
         }
@@ -171,10 +171,10 @@ namespace Packages.Microservices.Commands
                 List<TContext> contextsToPropagate = new();
                 Parallel.ForEach(contexts, context =>
                 {
-                    if (!((IPropagable<TContext>)propagate).CanApply(propagation))
+                    if (!((IPropagable<TContext>)propagate).CanPropagate(propagation))
                         return;
 
-                    var change = ((IPropagable<TContext>)propagate).Apply(context, propagation);
+                    var change = ((IPropagable<TContext>)propagate).Propagate(context, propagation);
                     if (change is null)
                         return;
 

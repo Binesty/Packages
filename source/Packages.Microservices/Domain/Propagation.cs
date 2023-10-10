@@ -16,8 +16,8 @@ namespace Packages.Microservices.Domain
     {
         Expression<Func<TContext, bool>> InContexts(Propagation propagation);
 
-        TContext Apply(TContext context, Propagation propagation);
+        TContext Propagate(TContext context, Propagation propagation);
 
-        bool CanApply(Propagation propagation);
+        bool CanPropagate(Propagation propagation);
     }
 }

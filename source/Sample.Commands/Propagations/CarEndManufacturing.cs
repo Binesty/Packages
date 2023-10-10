@@ -19,7 +19,7 @@ namespace Sample.Commands.Propagations
                                                 car.Name == filter.Name);
         }
 
-        public Sale Apply(Sale context, Propagation propagation)
+        public Sale Propagate(Sale context, Propagation propagation)
         {
             if (propagation is null)
                 return context;
@@ -33,7 +33,7 @@ namespace Sample.Commands.Propagations
             return context;
         }
 
-        public bool CanApply(Propagation propagation)
+        public bool CanPropagate(Propagation propagation)
         {
             if (propagation is null)
                 return false;

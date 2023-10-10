@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using Packages.Microservices;
 using Packages.Microservices.Jobs;
-using Sample.Commands.Propagations;
 using Sample.Jobs.Jobs;
 using System.Reflection;
 
@@ -26,7 +25,6 @@ namespace Sample.Jobs
                 _logger.LogInformation("Sample Commands in execution..");
 
                 await Jobs<Sale>.Configure(_settings)
-                                .Apply<RegisteredSale>()
                                 .Schedule<SaleCanceled>()
                                 .Start();
 

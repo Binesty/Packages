@@ -25,7 +25,7 @@ namespace Sample.Commands
 
             await Commands<Sale>.Configure(_settings)
                                 .Execute<Sell>()
-                                .Apply<CarEndManufacturing>()
+                                .Propagate<CarEndManufacturing>()
                                 .Start();
 
             Console.ReadLine();
