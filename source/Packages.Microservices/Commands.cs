@@ -262,7 +262,7 @@ namespace Packages.Microservices.Commands
                 Name = _settings.Value.Name,
                 Description = _settings.Value.Description,
                 LastInstance = _instance,
-                Exchange = _broker.ExchangeEntry,
+                Exchange = _broker.ExchangeIncoming,
                 StartDate = DateTime.UtcNow,
                 Context = contextType.Name
             };

@@ -137,7 +137,7 @@ namespace Data.Generator
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeIncoming,
                                   _brokerCommunicationConfigurationMicroservice.QueueName,
                                   _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
@@ -184,7 +184,7 @@ namespace Data.Generator
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeIncoming,
                                   _brokerCommunicationConfigurationMicroservice.QueueName,
                                   _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 
@@ -225,7 +225,7 @@ namespace Data.Generator
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeEntry,
+            _channel.BasicPublish(_brokerCommunicationConfigurationMicroservice.ExchangeIncoming,
                                   _brokerCommunicationConfigurationMicroservice.QueueName,
                                   _basicProperties, JsonSerializer.SerializeToUtf8Bytes(message));
 

@@ -15,14 +15,14 @@ namespace Packages.Microservices.Messages
         private readonly string _instance = string.Empty;
         private readonly BrokerCommunication.Configuration _brokerCommunicationConfiguration;
 
-        internal string ExchangeEntry => _brokerCommunicationConfiguration.ExchangeEntry;
+        internal string ExchangeIncoming => _brokerCommunicationConfiguration.ExchangeIncoming;
 
         private readonly IOptions<Settings> _settings;
         private List<Subscription> _subscriptions = new();
 
-        private ConnectionFactory _connectionFactoryEntry = null!;
-        private IModel _channelEntry = null!;
-        private EventingBasicConsumer _eventingBasicConsumerEntry = null!;
+        private ConnectionFactory _connectionFactoryIncoming = null!;
+        private IModel _channelIncoming = null!;
+        private EventingBasicConsumer _eventingBasicConsumerIncoming = null!;
 
         private ConnectionFactory _connectionFactoryPropagation = null!;
         private IModel _channelPropagation = null!;
@@ -48,7 +48,7 @@ namespace Packages.Microservices.Messages
         {
             CreateErrorsChannel();
             CreatePropagationChannel();
-            CreateEntryChannel();
+            CreateIncomingChannel();
             UpdateBindingSubscription(_subscriptions);
         }
 
@@ -130,27 +130,27 @@ namespace Packages.Microservices.Messages
             UpdateBindingSubscription(_subscriptions);
         }
 
-        private void CreateEntryChannel()
+        private void CreateIncomingChannel()
         {
-            if (_connectionFactoryEntry is not null)
+            if (_connectionFactoryIncoming is not null)
             {
-                if (_channelEntry.IsOpen)
-                    _channelEntry.Close();
+                if (_channelIncoming.IsOpen)
+                    _channelIncoming.Close();
             }
 
-            _connectionFactoryEntry = new()
+            _connectionFactoryIncoming = new()
             {
                 HostName = Secret.Loaded.RabbitHost,
                 UserName = Secret.Loaded.RabbitUser,
                 Password = Secret.Loaded.RabbitPassword,
                 Port = Secret.Loaded.RabbitPort,
-                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeEntry}",
+                ClientProvidedName = $"{_instance}-{_brokerCommunicationConfiguration.ExchangeIncoming}",
                 RequestedHeartbeat = retryDelay,
                 NetworkRecoveryInterval = retryDelay,
                 AutomaticRecoveryEnabled = true
             };
 
-            _channelEntry = _connectionFactoryEntry.CreateConnection()
+            _channelIncoming = _connectionFactoryIncoming.CreateConnection()
                                                    .CreateModel();
 
             var headers = new Dictionary<string, object>
@@ -158,20 +158,20 @@ namespace Packages.Microservices.Messages
                 { _brokerCommunicationConfiguration.Header, _brokerCommunicationConfiguration.HeaderValue }
             };
 
-            _channelEntry.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeEntry,
+            _channelIncoming.ExchangeDeclareNoWait(_brokerCommunicationConfiguration.ExchangeIncoming,
                                                 ExchangeType.Headers, durable: true, autoDelete: false);
 
-            _channelEntry.QueueDeclareNoWait(_brokerCommunicationConfiguration.QueueName,
+            _channelIncoming.QueueDeclareNoWait(_brokerCommunicationConfiguration.QueueName,
                                              durable: true, exclusive: false, autoDelete: false, arguments: headers);
 
-            _channelEntry.QueueBindNoWait(_brokerCommunicationConfiguration.QueueName,
-                                          _brokerCommunicationConfiguration.ExchangeEntry,
+            _channelIncoming.QueueBindNoWait(_brokerCommunicationConfiguration.QueueName,
+                                          _brokerCommunicationConfiguration.ExchangeIncoming,
                                           _brokerCommunicationConfiguration.QueueName, arguments: headers);
 
-            _channelEntry.BasicQos(prefetchSize: 0, prefetchCount: _settings.Value.MaxMessagesProcessingInstance, global: false);
+            _channelIncoming.BasicQos(prefetchSize: 0, prefetchCount: _settings.Value.MaxMessagesProcessingInstance, global: false);
 
-            _eventingBasicConsumerEntry = new EventingBasicConsumer(_channelEntry);
-            _eventingBasicConsumerEntry.Received += (model, content) =>
+            _eventingBasicConsumerIncoming = new EventingBasicConsumer(_channelIncoming);
+            _eventingBasicConsumerIncoming.Received += (model, content) =>
             {
                 var message = JsonSerializer.Deserialize<Message>(Encoding.UTF8.GetString(content.Body.ToArray()));
                 if (message != null)
@@ -180,23 +180,23 @@ namespace Packages.Microservices.Messages
                 }
             };
 
-            _channelEntry.BasicConsume(_brokerCommunicationConfiguration.QueueName, false, _eventingBasicConsumerEntry);
+            _channelIncoming.BasicConsume(_brokerCommunicationConfiguration.QueueName, false, _eventingBasicConsumerIncoming);
         }
 
         internal void ConfirmDelivery(ulong deliveryTag)
         {
-            if (_channelEntry.IsClosed)
-                CreateEntryChannel();
+            if (_channelIncoming.IsClosed)
+                CreateIncomingChannel();
 
-            _channelEntry.BasicAck(deliveryTag, false);
+            _channelIncoming.BasicAck(deliveryTag, false);
         }
 
         internal void RejectDelivery(ulong deliveryTag)
         {
-            if (_channelEntry.IsClosed)
-                CreateEntryChannel();
+            if (_channelIncoming.IsClosed)
+                CreateIncomingChannel();
 
-            _channelEntry.BasicNack(deliveryTag, false, true);
+            _channelIncoming.BasicNack(deliveryTag, false, true);
         }
 
         internal void PublishError(Message message)
@@ -204,7 +204,7 @@ namespace Packages.Microservices.Messages
             if (_channelErrors.IsClosed)
                 CreateErrorsChannel();
 
-            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangeErrors,
+            _channelIncoming.BasicPublish(_brokerCommunicationConfiguration.ExchangeErrors,
                                        _brokerCommunicationConfiguration.ExchangeErrors,
                                        null, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
@@ -247,7 +247,7 @@ namespace Packages.Microservices.Messages
             _basicProperties.Persistent = true;
             _basicProperties.Headers = headers;
 
-            _channelEntry.BasicPublish(_brokerCommunicationConfiguration.ExchangePropagation,
+            _channelIncoming.BasicPublish(_brokerCommunicationConfiguration.ExchangePropagation,
                                        message.Destination, _basicProperties,
                                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)));
         }
@@ -281,7 +281,7 @@ namespace Packages.Microservices.Messages
             {
                 Header = "microservice",
                 HeaderValue = microservice,
-                ExchangeEntry = $"{type}:{microservice}:entry",
+                ExchangeIncoming = $"{type}:{microservice}:incoming",
                 ExchangePropagation = $"{type}:{microservice}:propagations",
                 ExchangeErrors = $"{type}:errors",
                 QueueName = $"{type}:{microservice}",
@@ -295,7 +295,7 @@ namespace Packages.Microservices.Messages
 
             public string HeaderValue { get; set; }
 
-            public string ExchangeEntry { get; set; }
+            public string ExchangeIncoming { get; set; }
             public string ExchangePropagation { get; set; }
 
             public string ExchangeErrors { get; set; }

@@ -18,4 +18,4 @@ nuget.exe sources Add -Name "Binesty" -Source "https://nuget.pkg.github.com/read
 ```
 
 check file: c:\users\[username]\appdata\roaming\nuget\nuget.config  
-the source entry has been created
+the source incoming has been created
